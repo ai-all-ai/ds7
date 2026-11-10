@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "residential": "Hogares",
+    "business": "Empresas",
+    "mobility": "Movilidad",
+    "equipment": "Equipamiento",
+    "service": "Mantenimiento",
+    "contact": "Contactar"
+  },
+  "common": {
+    "viewProduct": "Ver producto",
+    "requestQuote": "Pedir presupuesto",
+    "calculate": "Calcular ahorro",
+    "fromPrice": "desde",
+    "close": "Cerrar",
+    "send": "Enviar",
+    "success": "Solicitud enviada correctamente"
+  },
+  "calc": {
+    "title": "Calcula tu ahorro solar",
+    "billLabel": "¿Cuánto pagas de luz al mes?",
+    "yearlySavings": "Ahorro anual estimado",
+    "recommendedPower": "Potencia recomendada",
+    "paybackTime": "Amortización estimada"
+  },
+  "badges": {
+    "top": "TOP Ventas",
+    "new": "Novedad",
+    "sale": "Oferta"
+  }
+}

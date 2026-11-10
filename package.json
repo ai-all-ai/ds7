@@ -1,0 +1,64 @@
+{
+  "name": "@ai.all/ds7",
+  "version": "1.0.0",
+  "description": "AI-ready architecture standard for web projects — structured for humans, optimized for AI agents",
+  "keywords": [
+    "architecture",
+    "design-system",
+    "atomic-design",
+    "nuxt",
+    "vue",
+    "web-vitals",
+    "seo",
+    "ai",
+    "agents",
+    "i18n",
+    "performance",
+    "lighthouse"
+  ],
+  "homepage": "https://github.com/ai-all-ai/ds7#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ai-all-ai/ds7.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ai-all-ai/ds7/issues"
+  },
+  "license": "MIT",
+  "author": "Igor Orlov & The Human-AI Crafting Collective",
+  "bin": {
+    "ds7": "bin/ds7.js"
+  },
+  "files": [
+    "bin/",
+    "01-architecture/",
+    "02-design-system/",
+    "03-performance-web-vitals/",
+    "04-seo-ai-optimization/",
+    "05-internationalization/",
+    "06-business-conversion/",
+    "07-testing/",
+    "08-token-optimization/",
+    "templates/",
+    "ALL.md",
+    "AIALL.md",
+    "ANDALUSIA.md",
+    "README.md",
+    "SPEC.md",
+    "ff.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@ai.all/aiall": "^0.2.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "test": "node bin/ds7.js --version",
+    "prepublishOnly": "npm test"
+  }
+}
