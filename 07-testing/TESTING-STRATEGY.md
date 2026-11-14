@@ -23,7 +23,7 @@ Accessibility checks (axe) run on every page at 390, 820 and 1440 px as part of 
 |---|---|
 | Vitest | unit, composable and component tests |
 | `@vue/test-utils` | mounting components without a browser |
-| Playwright | flows (calculator, contact, 404) and screenshots for review |
+| Playwright | flows (calculator, contact, 404), visual regression of `/ui` (section 8) |
 | axe-core | accessibility rules, through Playwright |
 
 ---
@@ -83,7 +83,7 @@ Each test file runs alone, without a global setup that the test depends on.
 | `components/ui/` | critical interactions only |
 | `pages/` | smoke test: renders, has one `h1`, no console errors |
 
-Do not unit-test static data, copy or CSS. Copy is checked by the locale parity gate; CSS by the visual review in the sandbox.
+Do not unit-test static data, copy or CSS. Copy is checked by the locale parity gate; CSS by the visual regression in section 8.
 
 ---
 
@@ -93,3 +93,28 @@ Do not unit-test static data, copy or CSS. Copy is checked by the locale parity 
 2. After editing, run that test with `--reporter=dot`.
 3. Widen the scope only if shared logic changed.
 4. Run the full suite once at the end of the task.
+
+---
+
+## 8. Visual regression
+
+- **Scope:** every brandbook entry on `/ui` at 390, 820 and 1440 px, plus the full `/ui` page. Each entry carries `data-pattern="<ID>"`, so a test can take a screenshot of one pattern. The template is `templates/visual.spec.ts`.
+- **Tool:** Playwright `toHaveScreenshot`. Reference images are committed to the repository. Rendering differs between operating systems, so create and check the references on the CI system (Linux).
+- **Tolerance:** `maxDiffPixelRatio: 0.002` by default. A larger value needs a comment in the test that says why.
+- **Stability:** disable animations (`animations: 'disabled'`), wait for `document.fonts.ready`, and fix any date, random value or auto-playing carousel that appears on `/ui`.
+- **Changes:** a change to a token or a pattern updates the references in the same commit, and the CHANGELOG says which patterns changed. Look at the diff images before accepting them. Never update a reference to hide a change you cannot explain.
+
+## 9. Agent checks
+
+A fixed set of tasks shows whether an agent follows these rules. Each task has a pass condition that a command or a reviewer can decide. Run each task in a new session that starts from `ALL.md` only.
+
+| # | Task given to the agent | Pass when |
+|---|---|---|
+| 1 | Add an atom with one modifier | The pattern has an ID and a `/ui` entry. The component uses tokens only (no raw hex or `rgb()`). A visual reference exists. |
+| 2 | Add one text string to a section | The key exists in every locale. `i18n-check --strict` passes. The component has no hard-coded text. |
+| 3 | Add one image | The image goes through `UiImg` with `width` and `height`. The file is in `public/`. The asset check passes. |
+| 4 | Add a page that shows a product grid | The page file has no inline card or grid. It uses section components. It has one `h1`. The 404 page is unchanged. |
+| 5 | Change one colour token | The brandbook references change in the same commit. The contrast gate still passes at 4.5:1 for body text. |
+| 6 | Add a third-party script for a feature | The agent does not add it before consent exists, and it asks the owner first. |
+
+Record each run in `docs/METRICS.md`: date, agent and version, the tasks passed or failed, and the reason for each failure. A result describes one agent at one version. It is not a guarantee for other agents or later versions.

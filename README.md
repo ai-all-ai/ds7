@@ -10,7 +10,13 @@
 npx @ai.all/ds7
 ```
 
-DS7 is a set of rules, templates and reference documents for fast, multilingual Nuxt 4 / Vue 3 sites. Agents read the rules in `ALL.md` first.
+DS7 is a set of rules, templates and reference documents for fast, multilingual Nuxt 4 / Vue 3 sites. AI agents start from the root `ALL.md`, which routes them to the DS7 rules in `ds7/ALL.md` and to the rules of your project.
+
+## Requirements
+
+- Node.js 18 or newer.
+- A project folder where you run the command. DS7 writes `ds7/` and the agent entrypoints there.
+- A web project that follows the stack in `ds7/SPEC.md` (Nuxt 4, Vue 3, Tailwind CSS v4). The rules are written for that stack.
 
 ## Related
 
@@ -25,6 +31,8 @@ DS7 is a set of rules, templates and reference documents for fast, multilingual 
 ```bash
 npx @ai.all/ds7
 ```
+
+Then add your project's own values to the root `ALL.md`, below the packs block, and run `npx @ai.all/aiall check`.
 
 **Sync agent entrypoints only**
 
@@ -61,6 +69,16 @@ npx @ai.all/ds7 update
 
 Put project values in the root `ALL.md`, below the AI-ALL packs block. Edits to `ds7/` are lost on `update`; propose a change to the standard instead.
 
+## Git
+
+- Commit `ds7/`, the root `ALL.md` and the agent entrypoints (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, ...).
+- DS7 and AI-ALL do not change `.gitignore`. Add ignore rules to your project for `node_modules/`, `.nuxt/`, `.output/`, `dist/`, logs, and `.env` files. The `.gitignore` of the DS7 repository is an example.
+- Never commit secrets. Keep them in a git-ignored `.env` or in the host's environment, and list only their names in `.env.example`. See `ds7/09-security-errors/SECURITY-AND-ERRORS.md`.
+
+## Contributing and security
+
+Contribution rules: [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+
 ## Upgrading from DS7 1.x
 
 DS7 1.x wrote `ALL.md` and `ALL.project.md` to the project root. From this version the standard is the `ds7` pack of AI-ALL. `update` does not delete or rewrite your files, and it prints a warning for each one that needs a manual step:
@@ -91,9 +109,11 @@ A value that is not a token does not appear in a component. A pattern that is no
 | `04-seo-ai-optimization/` | Answer blocks for AI search, structured data, local search |
 | `05-internationalization/` | One locale hub, adding a language |
 | `06-business-conversion/` | Commercial patterns for solar and EV projects (examples) |
-| `07-testing/` | Targeted testing, accessibility gate |
+| `07-testing/` | Targeted testing, accessibility gate, visual regression, agent checks |
 | `08-token-optimization/` | Working efficiently with AI context |
-| `templates/` | Starter component, tokens, Nuxt config |
+| `09-security-errors/` | Security headers, secrets, dependencies, 404 and 500 pages |
+| `10-operations/` | Real-user metrics, deployment and rollback, feature flags, content model, dependency policy, changesets |
+| `templates/` | Starter component, tokens, Nuxt config, visual regression test |
 
 ## Release
 

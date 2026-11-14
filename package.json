@@ -1,6 +1,6 @@
 {
   "name": "@ai.all/ds7",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "AI-ready architecture standard for web projects: brand-first foundations, Atomic Design and agent rules in one place",
   "keywords": [
     "architecture",
@@ -40,6 +40,8 @@
     "06-business-conversion/",
     "07-testing/",
     "08-token-optimization/",
+    "09-security-errors/",
+    "10-operations/",
     "templates/",
     "ALL.md",
     "CHANGELOG.md",
@@ -50,14 +52,16 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@ai.all/aiall": "^0.3.0"
+    "@ai.all/aiall": "^1.0.0"
   },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "test": "node bin/ds7.js --version && node bin/ds7.js --help > /dev/null && node --test test/integration.test.js",
+    "test": "node bin/ds7.js --version && node bin/ds7.js --help > /dev/null && node --test test/integration.test.mjs",
+    "format": "npx --yes prettier@3.6.2 --write \"**/*.{js,mjs,cjs,ts,vue,json,yml,yaml}\"",
+    "format:check": "npx --yes prettier@3.6.2 --check \"**/*.{js,mjs,cjs,ts,vue,json,yml,yaml}\"",
     "prepublishOnly": "npm test"
   }
 }

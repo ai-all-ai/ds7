@@ -1,4 +1,4 @@
-import tailwindcss from '@tailwindcss/vite'
+import tailwindcss from '@tailwindcss/vite';
 
 /**
  * DS7 reference Nuxt 4 configuration.
@@ -11,16 +11,14 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-  modules: [
-    '@nuxtjs/i18n',
-  ],
+  modules: ['@nuxtjs/i18n'],
 
   vite: {
     plugins: [tailwindcss()],
   },
 
   experimental: {
-    inlineSSRStyles: true,   // critical CSS per page, see 03-performance-web-vitals/CRITICAL-CSS.md
+    inlineSSRStyles: true, // critical CSS per page, see 03-performance-web-vitals/CRITICAL-CSS.md
     viewTransition: false,
   },
 
@@ -61,4 +59,4 @@ export default defineNuxtConfig({
   typescript: {
     strict: true,
   },
-})
+});

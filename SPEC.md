@@ -3,7 +3,7 @@
 > **How it fits with AI-ALL.** [AI-ALL](https://github.com/ai-all-ai/aiall) (`@ai.all/aiall`) creates the agent entrypoints and the routing file, and keeps them in sync. This document is delivered to agents as the `ds7` pack of AI-ALL. AI-ALL works without DS7; for web projects, install both.
 
 
-Version 1.1.0. This document is the technical baseline. Rules for agents are in `ALL.md`; this file describes the stack, the layout and the quality gates.
+Version 2.1.0. This document is the technical baseline. Rules for agents are in `ALL.md`; this file describes the stack, the layout and the quality gates.
 
 ---
 
