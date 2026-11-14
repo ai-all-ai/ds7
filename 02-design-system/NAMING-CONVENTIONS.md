@@ -1,15 +1,12 @@
-# 02-Design-System · Minimalist Naming & CSS Minification
+# 02 · Naming conventions
 
-> Стандарт компактного и семантичного именования классов для уменьшения веса HTML/CSS и ускорения рендеринга.
+Short, semantic class names keep HTML small and make CSS readable. The formula and the rules are the same for every project.
 
 ---
 
-## 1. Принцип краткости без потери смысла
+## 1. Examples
 
-Длинные классы раздувают DOM-дерево, увеличивают объем передаваемого HTML и замедляют парсинг.
-Мы используем краткие, интуитивно понятные сокращения:
-
-| Было (громоздко) | Стало в DS7 (минималистично и чисто) |
+| Long name | DS7 name |
 |---|---|
 | `.catalog-product-card` | `.p-card` |
 | `.catalog-product-card--featured` | `.p-card.-top` |
@@ -21,23 +18,28 @@
 
 ---
 
-## 2. Формула синтаксиса классов
+## 2. Formula
 
 ```
-.[компонент]__ [элемент] .- [модификатор]
+.[component]          base name, short kebab-case
+.[component]__[part]  element, double underscore
+.-[modifier]          modifier, separate class with a leading dash
+.is-[state]           state
 ```
-
-1. **Компонент:** Короткое имя блока (`.btn`, `.p-card`, `.field`, `.slider`).
-2. **Элемент (если требуется):** Отделяется двумя подчеркиваниями (`.p-card__art`, `.p-card__body`, `.p-card__title`, `.p-card__price`).
-3. **Модификатор:** Отдельный класс через дефис (`.-top`, `.-dark`, `.-new`, `.-sm`, `.-lg`, `.-compact`).
 
 ---
 
-## 3. Сжатие и минификация сборки
+## 3. Rules
 
-1. **PurgeCSS / Tailwind Tree-Shaking:**
-   Все неиспользуемые стили вычищаются при сборке `nuxt generate`. В финальный CSS попадают только реально задействованные классы.
-2. **CSS Nano / Lightning CSS:**
-   Минификатор удаляет комментарии, склеивает правила, сокращает цвета (`#ffffff` → `#fff`, `0px` → `0`) и преобразует повторяющиеся структуры в сжатый бинарный вид для передачи по gzip/brotli.
-3. **Разделение критических и второстепенных стилей:**
-   Критический CSS встраивается в HTML, а вторичные стили сжимаются и кэшируются на год (`Cache-Control: immutable`).
+1. **No word appended to a base name.** `.btn-lg`, `.card-big`, `.hero-active` are wrong. Write `.btn.-lg`, `.card.-big`, `.hero.is-active`.
+2. **Size and colour words are modifiers.** `-sm`, `-lg`, `-sun`, `-dark`. Not `-big`, `-red`, `-orange`.
+3. **Element names describe the part.** `__title`, `__price`, `__art`, not `__text2` or `__left`.
+4. **Only tokens in values.** Naming does not replace the token rule in `TOKENS-SPEC.md`.
+
+---
+
+## 4. Build-time minification
+
+- Unused styles are removed when the site is generated. Only classes that appear in the output ship.
+- The CSS minifier removes comments and shortens values (`#ffffff` → `#fff`).
+- Critical CSS is inlined; the rest is a cached file with a content hash in its name.

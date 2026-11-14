@@ -1,18 +1,18 @@
-# === Dependencies ===
+# Dependencies
 node_modules/
 .pnpm-store/
 .yarn/cache/
 .yarn/unplugged/
 
-# === Build output ===
+# Build output
 dist/
+build/
+out/
 .output/
 .nuxt/
 .cache/
-out/
-build/
 
-# === Package tarballs ===
+# Package tarballs and npm logs
 *.tgz
 *.tar.gz
 npm-debug.log*
@@ -21,14 +21,13 @@ yarn-error.log*
 pnpm-debug.log*
 .npm/
 
-# === Coverage & tests ===
+# Tests and coverage
 coverage/
 .nyc_output/
-playwright-report/
 test-results/
-.vitest/
+playwright-report/
 
-# === Environment & secrets ===
+# Environment and secrets
 .env
 .env.*
 !.env.example
@@ -36,7 +35,7 @@ test-results/
 *.key
 *.cert
 
-# === OS & editors ===
+# OS and editors
 .DS_Store
 Thumbs.db
 desktop.ini
@@ -46,11 +45,9 @@ desktop.ini
 *.swo
 *~
 
-# === Logs ===
+# Logs and temporary files
 logs/
 *.log
-
-# === Temp ===
-.tmp/
 tmp/
 temp/
+.tmp/

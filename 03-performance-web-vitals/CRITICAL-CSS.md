@@ -1,46 +1,39 @@
-# 03-Performance · Critical CSS & Zero Render-Blocking
+# 03 · Critical CSS and render-blocking
 
-> Как гарантировать First Contentful Paint (FCP) менее 0.4 секунды и 100 баллов в Google Lighthouse по категории Performance.
-
----
-
-## 1. В чём проблема стандартного CSS
-
-Когда браузер загружает обычную веб-страницу:
-1. Скачивается `index.html`;
-2. Браузер находит в `<head>` тег `<link rel="stylesheet" href="/_nuxt/entry.css">`;
-3. **Рендеринг страницы полностью блокируется (белый экран)**, пока файл `entry.css` (часто 50–150 КБ) скачивается по мобильной сети и парсится;
-4. Пользователь видит контент только через 1.5–3.0 секунды.
+A stylesheet in `<head>` blocks rendering until it has downloaded and parsed. On a slow mobile network a 50–150 KB stylesheet delays the first paint noticeably.
 
 ---
 
-## 2. Архитектура Critical CSS в Nuxt 4
+## 1. Split
 
-Critical CSS разделяет стили сайта на две части:
-1. **Above-the-fold (Критический CSS):** Стили шапки, сетки контейнера, типографики и фонового блока первого экрана (Hero).
-2. **Below-the-fold (Вторичный CSS):** Стили калькулятора, отзывов, карты, футера, модальных окон.
+- **Above the fold:** header, page grid, typography and the first screen. Needed for the first paint.
+- **Below the fold:** calculators, reviews, map, footer, modals. Needed later.
 
-### Настройка в `nuxt.config.ts`:
+---
+
+## 2. Nuxt configuration
 
 ```ts
 export default defineNuxtConfig({
   experimental: {
-    // Автоматическое извлечение и встраивание критических стилей в HTML
-    inlineSSRStyles: true
-  }
+    inlineSSRStyles: true,   // inline the CSS each page uses during generation
+  },
 })
 ```
 
-### Как это работает:
-При статической генерации (`npx nuxt generate`):
-* Nuxt парсит HTML каждой страницы и определяет классы, нужные для первого экрана;
-* Эти правила вставляются прямо внутрь `<style>` в `<head>` документа `index.html`;
-* Полная таблица стилей подключается асинхронно: `<link rel="preload" as="style">`.
+During `nuxt generate`:
+- each page is rendered and the classes it uses are collected;
+- those rules are inlined in `<style>` in the page `<head>`;
+- the full stylesheet is loaded afterwards with `rel="preload"`.
 
 ---
 
-## 3. Результат для пользователя и Google Lighthouse
+## 3. What to measure
 
-* Браузер получает `index.html` и **в ту же миллисекунду рисует идеальный первый экран**, не делая ни одного дополнительного сетевого запроса за CSS.
-* **FCP (First Contentful Paint):** снижается с 1.8s до **0.35s**.
-* **Speed Index:** зеленая зона (98–100 баллов).
+Record First Contentful Paint and render-blocking requests on a real phone, with the build and date, in `docs/METRICS.md`. Lab numbers from a sandbox are not evidence for this.
+
+---
+
+## 4. Budget
+
+Keep the entry stylesheet small enough to inline without delaying HTML. Set a budget in `docs/METRICS.md` and check it when the stylesheet changes.

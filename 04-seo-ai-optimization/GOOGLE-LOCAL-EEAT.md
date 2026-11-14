@@ -1,41 +1,36 @@
-# 04-SEO · Google Local Pack, E-E-A-T & Behavioral Signals
+# 04 · Local search, E-E-A-T and behavioural signals
 
-> Главные драйверы бесплатного органического трафика без закупки рекламных ссылок.
-
----
-
-## 1. Google Local Pack (Карты как генератор 50% заявок в Испании)
-
-В сфере монтажа и инжиниринга в Испании половина клиентов выбирает компанию на **Google Maps**:
-
-### Факторы ранжирования в Local 3-Pack:
-1. **Синхронизация NAP (Name, Address, Phone):**
-   Название, физический адрес в Севилье/Камасе и номер телефона на сайте в `Schema.org/LocalBusiness` должны совпадать **символ-в-символ** с профилем компании в **Google Business Profile**.
-2. **Живые отзывы:**
-   Регулярное пополнение отзывов от реальных клиентов с прикрепленными фотографиями установленных панелей на крышах.
-3. **Гео-привязка сервисных зон:**
-   В коде страницы и в микроразметке четко указываются города обслуживания: `Sevilla`, `Málaga`, `Marbella`, `Cádiz`, `Estepona`.
+For businesses that serve a region, most new customers find them through a map listing. This document lists what the site controls.
 
 ---
 
-## 2. Стандарты E-E-A-T (Опыт, Экспертность, Авторитет, Доверие)
+## 1. Local pack
 
-Поскольку покупка солнечной электростанции стоит 4 000 – 15 000 €, Google применяет жесткие алгоритмы оценки надежности (YMYL):
+Google's local results use the business profile and the website together.
 
-* **Юридические реквизиты:** Размещение CIF компании (`HELIONIX ENERGY SLU`), номера в торговом реестре Испании, юридического и фактического адреса.
-* **Сертификации монтажников:** Упоминание допусков электромонтажников категории especialista в Андалусии.
-* **Официальные партнерства:** Логотипы и упоминание статуса установщика брендов: V2C, Livoltek, Huawei, GoodWe, Canadian Solar.
+1. **NAP consistency.** Name, address and phone are identical on the website, in `LocalBusiness` structured data and in the business profile. Same spelling, same format.
+2. **Reviews.** Real customer reviews, requested after each job. Do not write reviews for customers and do not ask for reviews only from happy customers.
+3. **Service areas.** The towns or regions served are listed in the page content and in the structured data (`areaServed`).
 
 ---
 
-## 3. Поведенческие сигналы (Dwell Time и закрытие интента)
+## 2. E-E-A-T
 
-Алгоритм Google RankBrain оценивает реакцию пользователей:
+Google rates the trustworthiness of pages that affect money or safety more strictly.
 
-1. **Мгновенный отклик (FCP < 0.4s):**
-   Человек кликает по ссылке и сразу видит контент. Нет белого экрана — отказ минимальный.
-2. **Вовлечение через интерактив (High Dwell Time):**
-   Интерактивный калькулятор заставляет пользователя провести на странице **3–5 минут** (двигает ползунок, выбирает аккумулятор, смотрит график окупаемости).
-3. **Отсутствие возврата в поиск (Zero Pogo-Sticking):**
-   Клиент нажимает кнопку перехода в WhatsApp или скачивает PDF-смету. Его потребность полностью закрыта. Он **не возвращается в поиск Google** продолжать поиски.
-   Для поисковика это доказательство высшего качества страницы: сайт автоматически поднимается на первые позиции.
+- **Legal identity:** full legal name, company registration number, registered address. Shown in the footer and on a legal page.
+- **Qualifications:** the licences and certifications the staff hold, with the issuing body named.
+- **Partnerships:** only partner logos the business is authorised to use, with a link to the partner's confirmation where one exists.
+- **Named authors** for guides, with their role.
+
+Placeholders in this standard (`[Legal name]`, `[Registration number]`) must be replaced with real data by the business.
+
+---
+
+## 3. Behavioural signals
+
+Google observes what visitors do after a result.
+
+- **Fast first content.** A visitor who sees content at once stays. See `03-performance-web-vitals/`.
+- **Useful interaction.** A calculator or configurator keeps a visitor on the page to finish a task.
+- **Completed intent.** A visitor who reaches the contact action or downloads what they came for does not need to search again. Design the contact action to be the obvious next step.

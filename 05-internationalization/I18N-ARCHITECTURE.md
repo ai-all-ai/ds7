@@ -1,34 +1,31 @@
-# 05-Internationalization · Single Hub & Instant Language Scaling
+# 05 · Internationalisation: one hub
 
-> Единая архитектура локализации: как добавлять новые языки (es, en, uk, de, fr, it) за 2 минуты без раскидывания переводов по проекту.
+All interface text lives in one place. Adding a language is one file and one configuration entry.
 
 ---
 
-## 1. Архитектурный принцип: Single Hub (Единый хаб)
+## 1. Principle
 
-❌ **Как делать НЕЛЬЗЯ:**
-Хранить тексты в разных местах: часть в `i18n/`, часть в объектах `L(es, en, uk)` внутри компонентов, часть жестко зашитой в шаблонах.
+Do not keep text in several places: partly in `i18n/`, partly in inline `{ es, en }` objects inside components, partly typed into templates.
 
-✅ **Как устроено в DS7:**
-Все системные строки интерфейса хранятся **строго в одном месте**:
+Structure:
+
 ```
 i18n/
 └── locales/
-    ├── es.ts    # Испанский (базовый)
-    ├── en.ts    # Английский
-    ├── uk.ts    # Украинский
-    ├── de.ts    # Немецкий (новый)
-    └── fr.ts    # Французский (новый)
+    ├── es.ts      # base language
+    ├── en.ts
+    ├── uk.ts
+    └── [code].ts  # any new language
 ```
 
 ---
 
-## 2. Как добавить новый язык за 2 минуты:
+## 2. Adding a language
 
-### Шаг 1: Добавить файл перевода
-Скопируйте `es.ts` в `de.ts` и переведите значения ключей.
+1. Copy the base locale file to `[code].ts` and translate every value. Keys stay the same.
+2. Register the language:
 
-### Шаг 2: Зарегистрировать язык в `nuxt.config.ts`:
 ```ts
 // nuxt.config.ts
 i18n: {
@@ -38,20 +35,25 @@ i18n: {
     { code: 'es', language: 'es-ES', name: 'Español', file: 'es.ts' },
     { code: 'en', language: 'en-GB', name: 'English', file: 'en.ts' },
     { code: 'uk', language: 'uk-UA', name: 'Українська', file: 'uk.ts' },
-    { code: 'de', language: 'de-DE', name: 'Deutsch', file: 'de.ts' } // <-- Добавлена одна строчка!
+    { code: '[code]', language: '[bcp47]', name: '[name]', file: '[code].ts' },
   ],
-  langDir: '../i18n/locales'
+  langDir: '../i18n/locales',
 }
 ```
 
-Все маршруты (`/de`, `/de/hogares`, `/de/tienda`), переключатели в шапке, hreflang теги и sitemap для нового языка сгенерируются автоматически!
+Routes, language switcher, `hreflang` and sitemap entries for the new language are generated from this list.
 
 ---
 
-## 3. Четкое разделение: UI-строки vs Бизнес-данные
+## 3. Keys
 
-* **`i18n/locales/*.ts`** — отвечает **только за интерфейсные строки**:
-  Названия кнопок («Contactar», «Calcular mi ahorro»), подписи форм, элементы навигации, системные сообщения об ошибках.
-* **`app/data/*.ts`** — отвечает **за бизнес-данные и каталог**:
-  Список товаров, технические характеристики, список городов, база статей блога.
-* **Типизация:** Данные из `app/data/` проверяются TypeScript-интерфейсами. Если пропущен перевод на один из языков, компилятор не пропустит билд в продакшн.
+- Grouped by component or section: `businessScreens.night.title`.
+- Named by meaning, never by appearance (`hero.title`, not `big.red.title`).
+- The same key set in every locale. The parity check fails the build when a key is missing.
+
+---
+
+## 4. UI strings versus business data
+
+- `i18n/locales/*.ts`: interface text only. Button labels, form labels, navigation, error messages.
+- `app/data/*.ts`: business data. Products, specifications, service areas, articles. Typed. Text fields that differ by language use an object keyed by locale, validated by the schema, so a missing translation breaks the build.

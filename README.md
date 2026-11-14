@@ -1,124 +1,119 @@
-# DS7 · AI-Ready Web Architecture Standard
+# DS7
 
 [![npm](https://img.shields.io/npm/v/@ai.all/ds7)](https://www.npmjs.com/package/@ai.all/ds7)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![repo](https://img.shields.io/badge/github-ai--all--ai%2Fds7-blue)](https://github.com/ai-all-ai/ds7)
 
-> **One command. Full architecture standard. All AI agents in sync.**
+> **Brand first, then components, then pages.** A web architecture standard that AI agents can follow without long briefings.
 
 ```bash
-npx @ai-all-ai/ds7
+npx @ai.all/ds7
 ```
 
-Это единственная команда, которая нужна для старта нового проекта:  
-копирует стандарт DS7, создаёт `ALL.md` и синхронизирует все AI-агенты через `@ai.all/aiall`.
+DS7 is a set of rules, templates and reference documents for fast, multilingual Nuxt 4 / Vue 3 sites. Agents read the rules in `ALL.md` first.
 
----
+## Related
 
-> *Универсальная портативная методология для создания сверхбыстрых, масштабируемых веб-приложений на Vue 3 / Nuxt 4 с полной поддержкой AI-агентов, Atomic Design и Core Web Vitals 100/100.*
+- **npm:** [@ai.all/ds7](https://www.npmjs.com/package/@ai.all/ds7)
+- **GitHub:** [ai-all-ai/ds7](https://github.com/ai-all-ai/ds7)
+- **Delivered by:** [AI-ALL](https://github.com/ai-all-ai/aiall) (`@ai.all/aiall`) as the `ds7` pack. See [Packs](https://github.com/ai-all-ai/aiall#packs).
 
-Код и структура выстроены так, чтобы любой разработчик или ИИ-агент, заглянув внутрь, увидел безупречный порядок и захотел взять эту методологию за основу в своих проектах.
+## Quick start
 
----
-
-## 🎯 Главные принципы системы
-
-1. **Atomic Design & Полная автономность компонентов:**
-   Каждый UI-блок — самостоятельный кирпичик. Он ничего не знает о конкретной странице и одинаково идеально работает на главной, в узком сайдбаре, модалке или будучи вложенным «внутрь чего-то ещё и ещё глубже».
-2. **Единая точка входа для всех ИИ-агентов через `@ai.all/aiall`:**
-   Централизованный файл `ALL.md` объединяет правила для Claude, Gemini, Cursor, Windsurf, Copilot и Codex. Синхронизация и валидация всех entrypoint-файлов автоматизирована через официальный npm-пакет [`@ai.all/aiall`](https://www.npmjs.com/package/@ai.all/aiall) (`npx @ai.all/aiall`).
-3. **Короткие семантические модификаторы:**
-   Никаких дублирующих компонентов под разные страницы. Все варианты оформляются отдельными короткими классами-модификаторами (`-top`, `-new`, `-compact`, `-dark`), а контекст страниц задается от предка (`body.page-*`).
-4. **Единое место переводов (i18n Single Hub):**
-   Все локали собраны в единой структуре. Добавление нового языка (`de`, `fr`, `it`, `pl`) занимает 2 минуты через добавление двухбуквенного кода и файла переводов.
-5. **Бескомпромиссная скорость (Lighthouse 100/100):**
-   Critical CSS inlining, предварительная загрузка LCP-графики, нулевой сдвиг макета (CLS = 0.000) через локальные fallback-шрифты (Fontaine) и жесткие aspect-ratio.
-6. **Умный конвейер графики (Smart Assets Pipeline):**
-   Исходные картинки не вставляются с запасом. Избыточные прозрачные поля обрезаются по контуру (tight-trim), формируются оптимизированные WebP/AVIF форматы для мобильных (1x) и ретина-экранов (2x).
-7. **Оптимизация под ИИ-поисковики (AEO / GEO):**
-   Прямые ответы на вопросы (Direct Answer Blocks), плотные таблицы данных, микроразметка Schema.org Graph — готовая база знаний для SearchGPT, Perplexity и Google Gemini Overviews.
-8. **Брендбук и библиотека материалов как язык общения:**
-   Страница `/ui` — интерактивная песочница (Storybook) со стабильными идентификаторами компонентов (`CARD-01`, `CTL-01`, `PRICE-01`). В диалогах и задачах используются короткие метки без длинных описаний.
-
----
-
-## 📁 Структура каталога `ds7/`
-
-```
-ds7/
-├── README.md                  # Главный манифест и руководство (вы здесь)
-├── SPEC.md                    # Полная техническая спецификация
-├── ALL.md                     # Универсальная инструкция для AI-агентов (Single Source of Truth)
-│
-├── 01-architecture/           # Архитектура и компонентная модель
-│   ├── ATOMIC-DESIGN.md       # Иерархия: Атомы → Молекулы → Организмы → Шаблоны → Страницы
-│   ├── MODIFIER-SYSTEM.md     # Синтаксис коротких классов (-top, -dark) и управление от предка
-│   └── COMPONENT-ANATOMY.md   # Эталонная структура Vue 3 SFC (props, slots, container queries)
-│
-├── 02-design-system/          # Дизайн-система и токены
-│   ├── TOKENS-SPEC.md         # Цвета, отступы, тени, типографика (CSS Variables)
-│   ├── BRANDBOOK-SANDBOX.md   # Интерактивная песочница /ui и стабильные ID (CARD-01, CTL-01)
-│   └── NAMING-CONVENTIONS.md  # Ультра-короткие, понятные имена классов и минификация
-│
-├── 03-performance-web-vitals/ # Скорость загрузки и Core Web Vitals
-│   ├── CRITICAL-CSS.md        # Настройка Critical CSS inlining (FCP < 0.4s)
-│   ├── FONTS-ZERO-CLS.md      # Fontaine, preload шрифтов и нулевой сдвиг (CLS = 0)
-│   ├── ASSETS-PIPELINE.md     # Оптимизация картинок, обрезка полей, srcset, WebP/AVIF
-│   └── HYDRATION-STRATEGY.md  # Ленивая гидратация некритичных виджетов (requestIdleCallback)
-│
-├── 04-seo-ai-optimization/    # Продвижение без покупки ссылок и подготовка под ИИ
-│   ├── AEO-GEO-AI-SEARCH.md   # Answer Engine Optimization (SearchGPT, Perplexity, Gemini)
-│   ├── STRUCTURED-DATA.md     # Schema.org JSON-LD (Product, LocalBusiness, FAQPage)
-│   └── GOOGLE-LOCAL-EEAT.md   # Google Local Pack (Карты), E-E-A-T и поведенческие факторы
-│
-├── 05-internationalization/   # Умная локализация
-│   ├── I18N-ARCHITECTURE.md   # Архитектура единого хранилища и быстрое добавление языков
-│   └── LOCALE-TEMPLATE.json   # Эталонный шаблон структуры словаря
-│
-├── 06-business-conversion/   # Коммерческие механики и лидогенерация
-│   ├── EV-SOLAR-ECOSYSTEM.md  # V2C Trydan, V2H (машина как батарея), Plan MOVES III (скидки 70-80%)
-│   ├── B2C-B2B-MODELS.md      # Виртуальная батарея (счет 0€), PPA (0€ инвестиций), навесы
-│   └── CONTEXTUAL-LEADS.md    # Умный WhatsApp Deep-Link, PDF-сметы, оффлайн-очередь заявок
-│
-├── 07-testing/                # Стратегия тестирования
-│   └── TESTING-STRATEGY.md    # Точечные тесты, Vitest, Playwright, экономия токенов
-│
-├── 08-token-optimization/     # Оптимизация использования AI-контекста
-│   └── TOKEN-STRATEGY.md      # Граф проекта, lazy-loading, session handoff
-│
-└── templates/                 # Готовые эталонные файлы для копирования в проект
-    ├── component.vue          # Эталонный Vue 3 SFC компонент со всеми стандартами
-    ├── theme.css              # Базовый файл токенов (CSS Custom Properties)
-    └── nuxt.config.ts         # Эталонный конфигурационный файл Nuxt 4
-```
-
----
-
-## 🚀 Быстрый старт
-
-### Вариант А — npm (рекомендуется)
+**New project**
 
 ```bash
-# В корне нового проекта:
-npx @ai-all-ai/ds7
+npx @ai.all/ds7
 ```
 
-Команда сделает всё:
-- скопирует папку `ds7/` со всем стандартом
-- создаст `ALL.md` (если его нет)
-- запустит `npx @ai.all/aiall` для синхронизации всех AI-агентов
-
-### Вариант Б — вручную
-
-1. Скопируйте папку `ds7/` в корень нового проекта
-2. Скопируйте файлы из `ds7/templates/` → `components/`, `assets/css/`, `nuxt.config.ts`
-3. Запустите `npx @ai.all/aiall` для синхронизации AI-агентов
-4. Откройте `/ui` в браузере — интерактивная дизайн-система
-
-### Дополнительные команды
+**Sync agent entrypoints only**
 
 ```bash
-npx @ai-all-ai/ds7 sync    # синхронизировать только агентов
-npx @ai-all-ai/ds7 update  # обновить ds7/ до последней версии пакета
-npx @ai-all-ai/ds7 --version
+npx @ai.all/ds7 sync
 ```
+
+**Update to the installed version**
+
+```bash
+npm i -D @ai.all/ds7@latest
+npx @ai.all/ds7 update
+```
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `npx @ai.all/ds7` | Copy the standard to `ds7/`, write `ds7/aiall-pack.json`, run `aiall init`, enable the `ds7` pack |
+| `npx @ai.all/ds7 sync` | Run `aiall sync`; restores missing entrypoints, keeps existing files |
+| `npx @ai.all/ds7 update` | Overwrite `ds7/` and `ds7/aiall-pack.json` with this version, then run `aiall sync`. Project text in the root `ALL.md` is kept |
+| `npx @ai.all/ds7 --version` | Print the version |
+| `npx @ai.all/ds7 --help` | Print usage |
+
+## Files
+
+| File | Owner | `init` | `update` |
+|---|---|---|---|
+| `ds7/**` | the standard | copies, keeps existing | overwrites |
+| `ds7/aiall-pack.json` | the CLI, generated from its version | creates | overwrites |
+| `ds7/VERSION` | the CLI | writes | writes |
+| `ALL.md` (root) | AI-ALL; the text below the packs block is yours | created by AI-ALL | not changed by DS7 |
+| `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, ... | AI-ALL | created by AI-ALL | not changed by DS7 |
+
+Put project values in the root `ALL.md`, below the AI-ALL packs block. Edits to `ds7/` are lost on `update`; propose a change to the standard instead.
+
+## Upgrading from DS7 1.x
+
+DS7 1.x wrote `ALL.md` and `ALL.project.md` to the project root. From this version the standard is the `ds7` pack of AI-ALL. `update` does not delete or rewrite your files, and it prints a warning for each one that needs a manual step:
+
+1. Move the project values from `ALL.project.md` into the root `ALL.md`, below the packs block.
+2. Delete `ALL.project.md`.
+3. In the root `ALL.md`, remove the copied DS7 rules and keep the packs block.
+4. Run `npx @ai.all/ds7 update` and then `npx @ai.all/aiall check`.
+
+## Build order
+
+1. **Foundations:** tokens in `theme.css`.
+2. **Brandbook:** every token and base atom on `/ui`.
+3. **Atoms and molecules,** built from the brandbook.
+4. **Sections and pages,** built from components.
+
+A value that is not a token does not appear in a component. A pattern that is not in the brandbook is not finished.
+
+## What you get
+
+| Folder | Purpose |
+|---|---|
+| `ALL.md` | Agent contract: rules, build order, checklist, quick reference of component IDs |
+| `SPEC.md` | Technical baseline: stack, directory layout, naming, quality gates |
+| `01-architecture/` | Atomic Design levels, modifier system, component anatomy |
+| `02-design-system/` | Tokens, naming, brandbook sandbox with stable component IDs |
+| `03-performance-web-vitals/` | Assets pipeline, critical CSS, font metrics, hydration |
+| `04-seo-ai-optimization/` | Answer blocks for AI search, structured data, local search |
+| `05-internationalization/` | One locale hub, adding a language |
+| `06-business-conversion/` | Commercial patterns for solar and EV projects (examples) |
+| `07-testing/` | Targeted testing, accessibility gate |
+| `08-token-optimization/` | Working efficiently with AI context |
+| `templates/` | Starter component, tokens, Nuxt config |
+
+## Release
+
+Versioning, release steps and rules: [docs/RELEASE.md](docs/RELEASE.md). The change history is in [CHANGELOG.md](CHANGELOG.md).
+
+## Language
+
+All documents are in English. The owner may converse in any language; code and docs stay in English, UI copy goes through the i18n files.
+
+## Note on examples
+
+`06-business-conversion/` and the example values in `04-seo-ai-optimization/` describe a Spanish solar company. They show structure, not facts to reuse. Replace contact details, legal names and prices with your own.
+
+## Prior art
+
+- Atomic Design by Brad Frost: component levels.
+- W3C Design Tokens Community Group: token file format.
+- Style Dictionary: one token source, many platform outputs.
+- Storybook and public design systems (GOV.UK, Material, Salesforce Lightning): foundations documented before components.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

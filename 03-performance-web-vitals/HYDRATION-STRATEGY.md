@@ -1,51 +1,68 @@
-# 03-Performance · Hydration Strategy & TBT Minimization
+# 03 · Hydration strategy
 
-> Как избавиться от зависаний интерфейса (Total Blocking Time < 50ms) при первом входе на страницу.
-
----
-
-## 1. В чём опасность полной гидратации
-
-Nuxt генерирует чистый статический HTML. Браузер быстро его отображает, но затем запускается процесс **гидратации (Hydration)**:
-* Vue начинает «оживлять» каждый компонент на странице, вешать слушатели событий и инициализировать реактивные объекты;
-* Если на странице 15 секций (калькулятор, карта проектов, чат, модалки, слайдеры), этот процесс может занять **250–500 мс** на среднем мобильном процессоре;
-* В это время страница «висит» — пользователь тыкает по меню или кнопке, а клик не срабатывает.
+Static HTML appears first. Then the framework attaches event handlers to each component (hydration). On a phone with many interactive components this can block the main thread for hundreds of milliseconds, and taps are ignored during that time.
 
 ---
 
-## 2. Стратегия отложенной гидратации в DS7
+## 1. Principle
 
-### 1. Отложенные второстепенные виджеты (`requestIdleCallback`)
-Виджеты, которые не нужны в первую секунду (чат WhatsApp, куки-баннер, модалка звонка, звуковые эффекты), гидрируются только тогда, когда процессор свободен:
+Hydrate only what the visitor needs now.
+
+- **Critical:** navigation, the first interactive element, forms the visitor sees.
+- **Idle:** chat widgets, cookie banner, sound controls, modals that are not open.
+- **On visibility:** heavy sections below the fold (maps, charts, interactive calculators).
+
+---
+
+## 2. Idle widgets
 
 ```vue
 <script setup lang="ts">
-const shouldHydrateIdle = ref(false)
+const ready = ref(false)
 
 onMounted(() => {
   if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(() => { shouldHydrateIdle.value = true })
+    window.requestIdleCallback(() => { ready.value = true })
   } else {
-    setTimeout(() => { shouldHydrateIdle.value = true }, 1500)
+    setTimeout(() => { ready.value = true }, 1500)
   }
 })
 </script>
 
 <template>
   <ClientOnly>
-    <SiteChat v-if="shouldHydrateIdle" />
-    <SiteCookieBanner v-if="shouldHydrateIdle" />
+    <SiteChat v-if="ready" />
+    <SiteCookieBanner v-if="ready" />
   </ClientOnly>
+}
 </template>
 ```
 
-### 2. Ленивая гидратация по скроллу (`when-visible`)
-Тяжелые интерактивные секции ниже первого экрана (интерактивная карта проектов `HomeProjectMap`, модель дня и ночи `HomeDayNight`) гидрируются только тогда, когда пользователь приближается к ним при прокрутке.
+Note for the banner: it must not hide content while it waits. Reserve its space with a fixed position.
 
-### 3. Пассивные слушатели событий (`passive: true`)
-В компоненте `UiCardSlider` и любых событиях скролла/тача:
+---
+
+## 3. Visibility
+
+Heavy sections use lazy components that hydrate when they approach the viewport:
+
+```vue
+<LazyHomeProjectMap hydrate-on-visible />
+```
+
+---
+
+## 4. Passive listeners
+
+Scroll and touch listeners that never call `preventDefault` are registered as passive, so the browser can scroll without waiting for the script:
+
 ```ts
 window.addEventListener('scroll', onScroll, { passive: true })
 track.addEventListener('touchstart', onTouchStart, { passive: true })
 ```
-Браузер заранее знает, что скрипт не отменит стандартную прокрутку страницы (`preventDefault`), и скроллит страницу с максимальной частотой 120 FPS без микро-фризов.
+
+---
+
+## 5. Measuring
+
+Total Blocking Time and Interaction to Next Paint are measured on a real device, not in a sandbox. Record the results in `docs/METRICS.md`.
