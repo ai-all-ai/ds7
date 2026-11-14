@@ -5,27 +5,30 @@
  */
 
 interface SpecItem {
-  label: string
-  value: string
+  label: string;
+  value: string;
 }
 
-const props = withDefaults(defineProps<{
-  title: string
-  description?: string
-  price?: number | null
-  badge?: 'top' | 'new' | 'sale'
-  specs?: SpecItem[]
-  top?: boolean
-  compact?: boolean
-  dark?: boolean
-}>(), {
-  description: '',
-  price: null,
-  specs: () => [],
-  top: false,
-  compact: false,
-  dark: false,
-})
+const props = withDefaults(
+  defineProps<{
+    title: string;
+    description?: string;
+    price?: number | null;
+    badge?: 'top' | 'new' | 'sale';
+    specs?: SpecItem[];
+    top?: boolean;
+    compact?: boolean;
+    dark?: boolean;
+  }>(),
+  {
+    description: '',
+    price: null,
+    specs: () => [],
+    top: false,
+    compact: false,
+    dark: false,
+  },
+);
 
 const classes = computed(() => [
   'p-card',
@@ -33,7 +36,7 @@ const classes = computed(() => [
   props.compact && '-compact',
   props.dark && '-dark',
   props.badge && `-${props.badge}`,
-])
+]);
 </script>
 
 <template>
@@ -84,7 +87,9 @@ const classes = computed(() => [
   border: 1px solid var(--card-border);
   border-radius: var(--radius-md, 12px);
   padding: var(--space-4, 16px);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .p-card.-top {

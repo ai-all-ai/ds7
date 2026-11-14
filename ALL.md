@@ -8,7 +8,7 @@
 > Project-specific rules live in the root `ALL.md`, below the AI-ALL packs block (`<!-- aiall:begin packs -->` to `<!-- aiall:end packs -->`). AI-ALL keeps that text on sync. Where project rules and this file disagree, the project rules win for that project and the disagreement is recorded in `docs/DECISIONS.md`.
 > This file is the `ds7` pack of AI-ALL. The root `ALL.md` lists it in the packs block. Every entrypoint (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/*`, `.windsurf/rules/*`, `.github/copilot-instructions.md`) points to the root `ALL.md`. Sync them with `npx @ai.all/aiall sync`.
 
-**Version:** 1.1.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, Tailwind CSS v4, `@nuxtjs/i18n`, static generation.
+**Version:** 2.1.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, Tailwind CSS v4, `@nuxtjs/i18n`, static generation.
 
 ---
 
@@ -26,7 +26,7 @@
 
 New projects and new sections are built **top-down from the brand**, never by styling pages one by one:
 
-1. **Foundations** (`theme.css`): colour, type scale, spacing, radius, shadow, breakpoints, z-index. Written as named tokens, with the W3C Design Tokens format (`$value`, `$type`) as the interchange shape if tools need it.
+1. **Foundations** (project file `theme.css`, for example `app/assets/css/theme.css`; a starter is in `ds7/templates/theme.css`): colour, type scale, spacing, radius, shadow, breakpoints, z-index. Written as named tokens, with the W3C Design Tokens format (`$value`, `$type`) as the interchange shape if tools need it.
 2. **Brandbook** (`/ui` sandbox): every foundation token shown, then the base atoms (`BTN-01`, `BTN-02`, `CTL-01`, `COUNTER-01`, `PRICE-01`) with their modifiers, states and contrast on light and dark backgrounds.
 3. **Atoms and molecules** built from the brandbook only. A component that is not in the sandbox is not finished.
 4. **Organisms and sections** composed from molecules.
@@ -88,7 +88,7 @@ Full rules: `02-design-system/NAMING-CONVENTIONS.md` and `01-architecture/MODIFI
 ## 4. Responsive layout
 
 - **Components** size themselves with `container-type: inline-size` and `@container`, so they work in any slot.
-- **Pages** use the breakpoints defined in `theme.css` (`--bp-*`). Do not invent new ones.
+- **Pages** use the breakpoints defined in the project's `theme.css` (`--bp-*`). Do not invent new ones.
 - **Grids** that cannot fit on a phone switch to two columns below 900 px, or to one column below 480 px. Check at 390, 820 and 1440 px.
 - **No horizontal scroll** on any page at 390 px. Side gutter is 16 px on phones.
 
@@ -96,7 +96,7 @@ Full rules: `02-design-system/NAMING-CONVENTIONS.md` and `01-architecture/MODIFI
 
 ## 5. Images and fonts
 
-Full rules: `03-performance-web-vitals/ASSETS-PIPELINE.md`, `FONTS-ZERO-CLS.md`.
+Full rules: `03-performance-web-vitals/ASSETS-PIPELINE.md`, `03-performance-web-vitals/FONTS-ZERO-CLS.md`.
 
 - **Every image from `public/` goes through the responsive image component** (`UiImg` in the reference project). Raw `<img src="/…">` is allowed only when the component wraps it.
 - **Explicit `width` and `height`** (or an `aspect-ratio` box) on every image. This gives CLS 0.
@@ -115,6 +115,7 @@ Full rules: `03-performance-web-vitals/ASSETS-PIPELINE.md`, `FONTS-ZERO-CLS.md`.
 - **Section navigation** counts only visible sections (`offsetParent !== null`) and recalculates on resize.
 - **Non-critical widgets** (chat, cookie banner, sound, modals) hydrate on idle or on visibility, not on load.
 - **Floating controls** never overlap each other on phones. Offsets come from one variable.
+- **Error pages.** An unknown route returns HTTP 404 with the site layout, a link home and translated copy. A server or build error shows a 500 page without stack traces or paths. See `09-security-errors/SECURITY-AND-ERRORS.md`.
 
 ---
 
@@ -122,7 +123,7 @@ Full rules: `03-performance-web-vitals/ASSETS-PIPELINE.md`, `FONTS-ZERO-CLS.md`.
 
 Full rules: `05-internationalization/I18N-ARCHITECTURE.md`.
 
-- One hub: `i18n/locales/<code>.ts`. Every locale has the same keys. `i18n-check --strict` must pass.
+- One hub: the project's `i18n/locales/<code>.ts`. Every locale has the same keys. `i18n-check --strict` must pass.
 - Adding a language = one file plus one entry in the locale list. Nothing else changes.
 - Keys are grouped by component or section (`businessScreens.night.title`). No keys named after pixels or colours.
 
@@ -167,8 +168,8 @@ Full rules: `04-seo-ai-optimization/`.
 - **Trailers:** commit trailers (for example `Co-Authored-By`) come from the project owner's instructions. If none are given, add none.
 - **Do not commit** generated files unless the project lists them as tracked artifacts. Do not commit `node_modules/`, `.nuxt/`, `.output/`, logs or screenshots.
 - **Semantic versioning** for this package:
-  - `PATCH` (1.1.x): fixes and wording, no change to what the CLI copies.
-  - `MINOR` (1.x.0): new rules, new docs, new template options. Existing projects keep working.
+  - `PATCH` (2.0.x): fixes and wording, no change to what the CLI copies.
+  - `MINOR` (2.x.0): new rules, new docs, new template options. Existing projects keep working.
   - `MAJOR` (x.0.0): renamed IDs, removed rules, changed file layout, changed CLI behaviour.
 - **Every user-visible change adds a line to `CHANGELOG.md`** under `Unreleased`, in Keep a Changelog format. Release = move the section to a version, bump `package.json`, commit, tag `vX.Y.Z`.
 - **Publishing** to npm is done by the maintainer only.
@@ -181,6 +182,8 @@ Full rules: `04-seo-ai-optimization/`.
 - **Platform-specific binaries** (native modules) break when `node_modules` is shared between macOS and Linux. Build in a separate copy with its own `node_modules`.
 - **Pin major versions** of framework modules that break easily (for example `@nuxtjs/i18n`). Do not accept a lockfile change that moves them without a reason in the commit message.
 - **Never edit `node_modules`.**
+- **Operations.** Real-user metrics, deploy and rollback, feature flags, content model, dependency policy and changesets are in `10-operations/`. Read the file that matches the task.
+- **Security baseline.** Headers, secrets and dependency rules are in `09-security-errors/SECURITY-AND-ERRORS.md`. Set headers where the site is served; never put a secret in the public configuration or in the repository.
 
 ---
 
@@ -188,6 +191,7 @@ Full rules: `04-seo-ai-optimization/`.
 
 Full rules: `07-testing/TESTING-STRATEGY.md`.
 
+- **Visual references** of `/ui` change only with the token or pattern change that caused them (`07-testing/TESTING-STRATEGY.md`, section 8).
 - Test names state the behaviour: `it('caps savings at the full bill')`, not `it('works')`.
 - Test domain logic and composables. Do not unit-test static data, copy or CSS.
 - During a task run **one targeted test**. Run the full suite once at the end.
@@ -196,6 +200,8 @@ Full rules: `07-testing/TESTING-STRATEGY.md`.
 ---
 
 ## 14. Documentation
+
+The project keeps these files, and agents read them when a task needs them: `docs/ARCHITECTURE.md` (layer map), `docs/DECISIONS.md` (dated decisions), `docs/METRICS.md` (measured values). The standard does not create them.
 
 - Each rule has one home. Do not repeat a rule in several files; link to the home.
 - Docs describe the current state. Decisions and their reasons go to `docs/DECISIONS.md` with a date.
@@ -229,4 +235,4 @@ Full strategy: `08-token-optimization/TOKEN-STRATEGY.md`.
 | `SLD-01` | Card slider with scroll-snap | same |
 | `HOOK-01` | Overlap hook under the cover | same |
 
-**Before you finish any task, check:** no hard-coded UI text · no raw colours · no copied component · every image sized and routed through the image component · i18n keys in all locales · axe clean at 390 / 820 / 1440 · CHANGELOG line added · no junk left in the repo.
+**Before you finish any task, check:** no hard-coded UI text · no raw colours · no copied component · every image sized and routed through the image component · i18n keys in all locales · axe clean at 390 / 820 / 1440 · CHANGELOG line added · no junk left in the repo · security headers and the 404 page unchanged or documented.
