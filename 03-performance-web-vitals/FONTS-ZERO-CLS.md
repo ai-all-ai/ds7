@@ -1,43 +1,39 @@
-# 03-Performance · Fonts & Zero Layout Shift (CLS = 0.000)
+# 03 · Fonts and zero layout shift
 
-> Как исключить «прыжки» текста при загрузке шрифтов и свести показатель Cumulative Layout Shift (CLS) к абсолютному нулю.
-
----
-
-## 1. Анатомия проблемы FOUT и прыжков текста
-
-Когда веб-шрифт Montserrat подгружается через `@font-face`:
-1. Браузер сначала рисует текст стандартным системным шрифтом (Arial или Helvetica);
-2. У системного шрифта другая ширина букв и высота строки (x-height);
-3. Через секунду подгружается `montserrat.woff2`, шрифт переключается, строки переносятся на новое место, и **вся страница дергается вниз на 20–40 пикселей**.
-4. Пользователь случайно кликает не туда, а Google фиксирует плохой показатель CLS (> 0.15).
+Text that jumps when a web font arrives moves the whole page and raises CLS. This document describes how DS7 avoids that.
 
 ---
 
-## 2. Комплексное решение проблемы в DS7
+## 1. The problem
 
-### Шаг 1: Прямой Preload в `<head>`
-Не ждем, пока CSS файл будет прочитан. Браузер начинает качать шрифт с первой миллисекунды:
+1. The browser draws text with a system font first (Arial or Helvetica).
+2. The system font has different glyph widths and line heights from the brand font.
+3. When the brand font arrives, lines re-wrap and content moves, often 20–40 px.
+
+---
+
+## 2. The approach
+
+### Step 1: preload one weight
+Preload the weight used on the first screen, as `woff2`, from the document `<head>`:
 
 ```ts
-// nuxt.config.ts -> app.head
-link: [
-  {
-    rel: 'preload',
-    href: '/fonts/montserrat-latin-var.woff2',
-    as: 'font',
-    type: 'font/woff2',
-    crossorigin: 'anonymous'
-  }
-]
+// nuxt.config.ts → app.head.link
+{
+  rel: 'preload',
+  href: '/fonts/brand-latin-var.woff2',
+  as: 'font',
+  type: 'font/woff2',
+  crossorigin: 'anonymous',
+}
 ```
 
-### Шаг 2: Модуль `@nuxtjs/fontaine` (Синхронизация пропорций)
-Fontaine анализирует геометрию шрифта Montserrat и создает локальный псевдо-шрифт:
+### Step 2: matched fallback
+A fallback `@font-face` built from a system font, with metrics adjusted to the brand font:
 
 ```css
 @font-face {
-  font-family: 'Montserrat-Fallback';
+  font-family: 'Brand Fallback';
   src: local('Arial');
   ascent-override: 95.8%;
   descent-override: 28.2%;
@@ -46,18 +42,18 @@ Fontaine анализирует геометрию шрифта Montserrat и с
 }
 ```
 
-**Магия Fontaine:** Буквы локального системного шрифта искусственно сжимаются и растягиваются так, чтобы **пиксель-в-пиксель занимать то же пространство**, что и Montserrat. 
-Когда реальный шрифт скачивается, форма букв меняется, но **ни одна строчка на странице не сдвигается**.
+The values come from the brand font's metrics (the `@nuxtjs/fontaine` module computes them). When the brand font loads, glyphs have the same advance widths and line boxes, so text does not move.
 
-### Шаг 3: `font-display: swap`
-Шрифт отображается мгновенно, экран не ждет загрузки (нет белого текста FOIT).
+### Step 3: `font-display: swap`
+Text appears at once with the fallback and swaps when the brand font is ready. No invisible text.
 
 ---
 
-## 3. Чек-лист проверки CLS = 0.000
+## 3. Checklist
 
-1. [x] Preload для основного начертания шрифта (`.woff2`).
-2. [x] Настроен fallback через Fontaine (`size-adjust`).
-3. [x] У всех логотипов и SVG-иконок жестко заданы атрибуты `width` и `height`.
-4. [x] У всех карточек и медиа-блоков зафиксирован CSS `aspect-ratio`.
-5. [x] Плавающие панели (`SiteIntro`, куки-баннер) позиционируются через `position: fixed` и не выталкивают контент.
+- [ ] One preloaded weight for the first screen.
+- [ ] Fallback with `size-adjust` and the override metrics.
+- [ ] Every logo and inline SVG has `width` and `height`.
+- [ ] Every card and media box has a fixed `aspect-ratio`.
+- [ ] Fixed-position panels (cookie banner, intro) do not push content.
+- [ ] Measured CLS recorded in `docs/METRICS.md` on a real device.

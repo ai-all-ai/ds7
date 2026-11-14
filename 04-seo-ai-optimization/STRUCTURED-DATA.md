@@ -1,12 +1,12 @@
-# 04-SEO · Structured Data & Schema.org Graph
+# 04 · Structured data (Schema.org JSON-LD)
 
-> Машиночитаемая микроразметка JSON-LD: как превратить сайт в структурированную базу данных для поисковых систем.
+Structured data is a machine-readable description of the business, its products and its pages. Search engines and AI assistants use it to identify entities and to show rich results.
 
 ---
 
-## 1. Единый граф сущностей (`@graph`)
+## 1. One graph per site
 
-Вместо разрозненных кусочков разметки на странице генерируется единый связанный граф через `@graph`:
+Describe all entities in a single `@graph` that links them by `@id`, instead of scattered fragments:
 
 ```json
 {
@@ -14,64 +14,61 @@
   "@graph": [
     {
       "@type": "Organization",
-      "@id": "https://miluzsolar.es/#organization",
-      "name": "Mi Luz Solar",
-      "legalName": "HELIONIX ENERGY SLU",
-      "url": "https://miluzsolar.es",
-      "logo": "https://miluzsolar.es/brand/mi-luz-solar.svg",
-      "email": "info@miluzsolar.es",
+      "@id": "https://example.com/#organization",
+      "name": "[Brand name]",
+      "legalName": "[Legal name]",
+      "url": "https://example.com",
+      "logo": "https://example.com/brand/logo.svg",
+      "email": "[contact email]",
       "address": {
         "@type": "PostalAddress",
-        "addressLocality": "Camas",
-        "addressRegion": "Sevilla",
-        "addressCountry": "ES"
+        "addressLocality": "[City]",
+        "addressRegion": "[Region]",
+        "addressCountry": "[ISO country code]"
       },
-      "areaServed": ["Sevilla", "Málaga", "Cádiz", "Andalucía"]
+      "areaServed": ["[Region 1]", "[Region 2]"]
     },
     {
       "@type": "WebSite",
-      "@id": "https://miluzsolar.es/#website",
-      "url": "https://miluzsolar.es",
-      "name": "Mi Luz Solar",
-      "publisher": { "@id": "https://miluzsolar.es/#organization" },
+      "@id": "https://example.com/#website",
+      "url": "https://example.com",
+      "name": "[Brand name]",
+      "publisher": { "@id": "https://example.com/#organization" },
       "inLanguage": ["es", "en", "uk"]
     }
   ]
-]
+}
 ```
+
+Name, address and phone must match the business profile exactly (see `GOOGLE-LOCAL-EEAT.md`).
 
 ---
 
-## 2. Разметка товаров для каталога (`Product` + `Offer`)
-
-Позволяет Google выводить цены, плашку «В наличии» и рейтинг прямо в поисковой выдаче:
+## 2. Products and offers
 
 ```json
 {
   "@type": "Product",
-  "name": "V2C Trydan e-Charger 7.4 kW",
-  "image": "https://miluzsolar.es/images/p/v2c-trydan.webp",
-  "description": "Cargador inteligente para coche eléctrico con integración fotovoltaica y carga por excedentes solares.",
-  "brand": {
-    "@type": "Brand",
-    "name": "V2C"
-  },
+  "name": "[Product name]",
+  "image": "https://example.com/images/p/product.webp",
+  "description": "[One factual sentence]",
+  "brand": { "@type": "Brand", "name": "[Brand]" },
   "offers": {
     "@type": "Offer",
-    "price": "782.40",
+    "price": "[price]",
     "priceCurrency": "EUR",
-    "priceValidUntil": "2026-12-31",
+    "priceValidUntil": "[date the price is valid until]",
     "availability": "https://schema.org/InStock",
-    "seller": { "@id": "https://miluzsolar.es/#organization" }
+    "seller": { "@id": "https://example.com/#organization" }
   }
 }
 ```
 
+Only publish a price that is current on the page. Update `priceValidUntil` when you update the price.
+
 ---
 
-## 3. Разметка FAQ (`FAQPage`)
-
-Гарантирует появление выпадающих вопросов и ответов прямо в результатах поиска Google:
+## 3. FAQ
 
 ```json
 {
@@ -79,12 +76,20 @@
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "¿Cuánto se tarda en instalar las placas solares?",
+      "name": "[Question as the visitor asks it]",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "La instalación física en una vivienda unifamiliar se realiza habitualmente en 24 a 48 horas. La legalización completa y gestión de excedentes toma entre 2 y 4 semanas."
+        "text": "[The same answer as on the page]"
       }
     }
   ]
 }
 ```
+
+The FAQ text in structured data must match the visible text on the page.
+
+---
+
+## 4. Validation
+
+Check every page with a structured-data validator before release. A validator error counts as a failed gate.

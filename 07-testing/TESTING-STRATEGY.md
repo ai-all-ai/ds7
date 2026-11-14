@@ -1,133 +1,95 @@
-# DS7 · 07 — Targeted Testing Strategy
+# 07 · Testing strategy
 
-> **Принцип:** Запускай минимально достаточный тест — не весь suite.  
-> Полный прогон — только перед PR/деплоем. Ежедневная разработка — точечные проверки.
-
----
-
-## Иерархия тестов (от быстрого к медленному)
-
-```
-1. Unit (domain logic)      ~10ms/test    → запускать всегда при изменении логики
-2. Composable (Vue reactive) ~50ms/test   → при изменении composable
-3. Component (Vue TU)        ~200ms/test  → при изменении компонента
-4. E2E / Playwright          ~5s/flow     → только критичные пути, перед релизом
-```
+Run the smallest test that proves the change. Run the full suite once before a commit that finishes a task.
 
 ---
 
-## Инструменты
+## 1. Layers, fastest first
 
-| Инструмент | Назначение |
+```
+1. Unit (domain logic)         ~10 ms per test    run when logic changes
+2. Composable (Vue reactivity) ~50 ms per test    run when a composable changes
+3. Component (Vue Test Utils)  ~200 ms per test   run when a component changes
+4. End-to-end (Playwright)     ~5 s per flow      key paths, before release
+```
+
+Accessibility checks (axe) run on every page at 390, 820 and 1440 px as part of the quality gates.
+
+---
+
+## 2. Tools
+
+| Tool | Use |
 |---|---|
-| **Vitest** | Unit + composable + component тесты |
-| **@vue/test-utils** | Маунт Vue-компонентов без браузера |
-| **Playwright** | E2E (checkout, calculator flow, 404) |
+| Vitest | unit, composable and component tests |
+| `@vue/test-utils` | mounting components without a browser |
+| Playwright | flows (calculator, contact, 404) and screenshots for review |
+| axe-core | accessibility rules, through Playwright |
 
 ---
 
-## Команды — точечные запуски
+## 3. Commands
 
 ```bash
-# Один файл
-npx vitest run app/domain/calculators/residential.test.ts
-
-# Одна папка
-npx vitest run app/domain/calculators/
-
-# По имени теста
-npx vitest run -t "savings calculator"
-
-# Минимальный вывод (экономит токены в AI-диалоге)
-npx vitest run --reporter=dot
-
-# Полный suite — только перед коммитом
-npx vitest run
-
-# Watch (только при локальной разработке)
-npx vitest --reporter=dot
+npx vitest run path/to/file.test.ts          # one file
+npx vitest run path/to/folder/               # one folder
+npx vitest run -t "savings"                  # by test name
+npx vitest run --reporter=dot                # short output
+npx vitest run                               # full suite, before a finishing commit
 ```
 
 ---
 
-## Правила именования тестов
+## 4. Naming
 
-```typescript
-// ✅ Описательное: что тестируем + ожидаемый результат
-it('calculates savings with 30% self-consumption correctly', () => { ... })
+```ts
+// good: what is tested and what is expected
+it('calculates savings with 30% self-consumption', () => { … })
 
-// ❌ Слабое: непонятно что ломается
-it('works', () => { ... })
+// poor: says nothing about what breaks
+it('works', () => { … })
 ```
 
 ---
 
-## Структура тест-файла
+## 5. Test file shape
 
-```typescript
-// app/domain/calculators/residential.test.ts
-
+```ts
 import { describe, it, expect } from 'vitest'
 import { calcSavings } from './residential'
 
-// Self-contained: тест запускается изолированно без глобального setup
 describe('calcSavings', () => {
   it('returns zero savings for zero consumption', () => {
     expect(calcSavings({ kwhMonth: 0, panelKw: 5, tariff: 0.18 })).toBe(0)
   })
 
-  it('caps savings at 100% of bill', () => {
+  it('caps savings at the full bill', () => {
     const r = calcSavings({ kwhMonth: 100, panelKw: 20, tariff: 0.18 })
     expect(r.savingsPct).toBeLessThanOrEqual(100)
   })
 })
 ```
 
----
-
-## Правила тестового покрытия
-
-| Слой | Покрытие | Инструмент |
-|---|---|---|
-| `domain/calculators/` | **≥ 90%** | Vitest unit |
-| `composables/` | **≥ 70%** | Vitest + @vue/test-utils |
-| `components/ui/` | **критичные пути** | @vue/test-utils |
-| `pages/` | **smoke только** | Playwright |
-
-> **Не тестировать:** статичные данные (`app/data/`), CSS, переводы (i18n) — их не нужно юнит-тестировать.
+Each test file runs alone, without a global setup that the test depends on.
 
 ---
 
-## Стратегия для AI-агентов (экономия токенов)
+## 6. Coverage expectations
 
-1. **Перед правкой** — запусти только тест изменяемого файла
-2. **После правки** — снова только этот тест (`--reporter=dot`)
-3. **Расширяй scope** только если изменение затронуло shared logic
-4. **Полный suite** — один раз в конце задачи, не в каждой итерации
+| Layer | Expectation |
+|---|---|
+| `domain/` | high; every branch of business rules |
+| `composables/` | main paths and error paths |
+| `components/ui/` | critical interactions only |
+| `pages/` | smoke test: renders, has one `h1`, no console errors |
 
-```bash
-# Шаблон для AI-итерации (минимум токенов):
-npx vitest run path/to/changed.test.ts --reporter=dot
-```
+Do not unit-test static data, copy or CSS. Copy is checked by the locale parity gate; CSS by the visual review in the sandbox.
 
 ---
 
-## Vitest Config (рекомендуемый минимум)
+## 7. Token-efficient testing for agents
 
-```typescript
-// vitest.config.ts
-import { defineConfig } from 'vitest/config'
-
-export default defineConfig({
-  test: {
-    environment: 'jsdom',
-    include: ['**/*.test.ts'],
-    exclude: ['node_modules', 'ds7', 'dist'],
-    reporter: process.env.CI ? 'verbose' : 'dot',  // dot = меньше вывода
-    coverage: {
-      include: ['app/domain/**', 'app/composables/**'],
-      reporter: ['text-summary'],  // краткий отчёт, не таблицы
-    },
-  },
-})
-```
+1. Before editing, know which test covers the file.
+2. After editing, run that test with `--reporter=dot`.
+3. Widen the scope only if shared logic changed.
+4. Run the full suite once at the end of the task.

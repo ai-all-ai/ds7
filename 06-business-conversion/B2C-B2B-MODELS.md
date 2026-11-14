@@ -1,36 +1,37 @@
-# 06-Business · B2C, B2B & B2A Business Models
+# 06 · Commercial models for energy projects (example)
 
-> Современные финансовые и коммерческие модели в солнечной энергетике Испании (2025–2026).
-
----
-
-## 1. B2C (Hogares / Частные дома)
-
-### «Batería Virtual» (Виртуальный аккумулятор) и Factura 0,00 €
-* В солнечные месяцы (май–сентябрь) в Андалусии панели производят больше, чем потребляет дом.
-* Излишки отправляются в сеть, а энергокомпания (Octopus, Repsol, Próxima) начисляет евро на виртуальный счет;
-* Зимой эти накопленные евро списываются в счет оплаты ночного электричества.
-* **Результат для клиента:** Круглогодичный счет **0,00 € в фактуре**.
-
-### Comunidades Energéticas (RD 244/2019)
-* По закону Испании панели на одной крыше могут распределять электричество между соседними домами в радиусе до 2 км;
-* Предложение для урбанизаций и таунхаусов (adosados): совместная установка одной мощной станции со скидкой до 35% для каждого соседа.
+> Example document from a Spanish solar company, 2025–2026. Market rules, subsidies and prices change. Verify every figure against current official sources before use.
 
 ---
 
-## 2. B2B (Empresas / Предприятия и фабрики)
+## 1. Residential (B2C)
 
-### Модель PPA (Power Purchase Agreement / 0€ Inversión)
-* Главная проблема директоров компаний: нежелание тратить 50 000 – 100 000 € оборотных средств;
-* **Решение PPA:** Инвестор или Mi Luz Solar устанавливает электростанцию на крыше предприятия **за 0 € капиталовложений**.
-* Предприятие просто покупает чистую энергию со своей же крыши по фиксированной низкой ставке (например, 0.08 €/кВт·ч вместо 0.19 €/кВт·ч из сети), экономя сотни тысяч евро.
+**Virtual battery.** In sunny months a home system produces more than the household uses. The surplus goes to the grid and is credited on the customer's account. In winter the credit offsets night-time consumption.
 
-### Solar Carports (Солнечные навесы для парковок)
-* Навесы из панелей над открытыми парковками отелей, складов, гипермаркетов и спорткомплексов;
-* Тень для автомобилей клиентов от андалузского солнца + встроенные зарядные станции V2C для сотрудников и автопарка.
+**Result for the customer:** a bill close to zero over the year, when credits match consumption.
+
+**Energy communities.** Spanish rules (RD 244/2019) allow shared self-consumption between nearby homes. Offer it to terraced houses and communities as a shared installation with a per-home discount.
 
 ---
 
-## 3. B2A (Comunidades de Propietarios и Госсектор)
+## 2. Business (B2B)
 
-* Программы энергоэффективности Next Generation EU субсидируют до **60%** затрат на установку солнечных панелей на крышах многоквартирных домов для питания лифтов, гаражей и освещения подъездов.
+**Power purchase agreement (PPA).** A company that does not want to spend its own capital can have a third party install the system on its roof. The company buys the energy at a fixed rate, below the grid tariff.
+
+Explain the contract length, the rate, the escalation clause and who owns the system at the end. Do not present the rate as a saving without the tariff it is compared to.
+
+**Solar carports.** Panels over car parks for hotels, warehouses and shops. Shade for customers and staff, plus charging points for fleet vehicles.
+
+---
+
+## 3. Community and public buildings (B2A)
+
+Public programmes can fund a large share of installations for shared buildings (lifts, garages, stairwell lighting). The share and the eligibility change by programme and year. State the programme name, the year and the source.
+
+---
+
+## 4. Rules for any offer
+
+- Name the programme, the year and the official source.
+- Show the price before and after any grant as two separate figures.
+- Do not make a promise about a grant that is not yet approved.

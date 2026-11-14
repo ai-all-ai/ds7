@@ -1,70 +1,53 @@
-# 04-SEO · AEO & GEO: Optimization for AI Search Engines
+# 04 · AEO and GEO: writing for AI search engines
 
-> Answer Engine Optimization (AEO) и Generative Engine Optimization (GEO): как сделать сайт источником цитирования для Perplexity, SearchGPT, Claude и Google Gemini Overviews.
-
----
-
-## 1. Смена парадигмы: от «Ключевых слов» к «Фактической плотности»
-
-Классические поисковики считали вхождения слов в текст. 
-Современные нейросети (SearchGPT, Gemini, Perplexity) считывают **семантические утверждения и факты**. Они ищут лаконичные, точные, проверяемые ответы на вопросы пользователя.
+Answer Engine Optimization (AEO) and Generative Engine Optimization (GEO) make a site easy to quote in AI answers: ChatGPT search, Perplexity, Gemini overviews and similar systems.
 
 ---
 
-## 2. Структура Direct Answer Block (Блок прямого ответа)
+## 1. What changed
 
-Каждый раздел сайта, отвечающий на информационный вопрос, должен начинаться с **блока прямого ответа**:
+Classic search matched words. AI search extracts **claims and facts** that answer a question, then cites the source. Pages that state a question, answer it in a few precise sentences, and back it with structured data are quoted more often.
+
+---
+
+## 2. Direct answer block
+
+Each informational section begins with its question as an `h2` and a short factual answer of 40–50 words:
 
 ```html
-<!-- 1. Заголовок — конкретный вопрос пользователя -->
-<h2 id="faq-cost">¿Cuánto cuesta instalar placas solares en una casa en Sevilla?</h2>
+<h2 id="cost-4kw">How much does a 4 kW home solar system cost?</h2>
 
-<!-- 2. Блок прямого ответа: 40–50 слов, точные цифры, без вводных фраз -->
 <p class="direct-answer">
-  Una instalación estándar de 4 kW (8 paneles solares de alta eficiencia) en Sevilla tiene 
-  un coste medio de <strong>4.200 € a 5.600 €</strong> sin ayudas. Con la bonificación del 50% 
-  del IBI en Sevilla y la deducción de hasta el 40% en el IRPF, el coste neto final se sitúa 
-  entre <strong>2.600 € y 3.300 €</strong>, con un retorno de inversión en 3,8 años.
+  A standard 4 kW system costs <strong>[range from your price list]</strong> before grants.
+  Replace the placeholder with a figure you can source, and state the date and the region.
 </p>
 ```
 
-### Почему это работает:
-Нейросеть вырезает этот абзац целиком и вставляет в карточку быстрого ответа (AI Summary), прикрепляя ссылку на наш сайт как на **авторитетный первоисточник**.
+Rules for the answer:
+- No introduction ("Great question…"). The first words answer the question.
+- Numbers come with units, a date and a region.
+- Every figure has a source in the page or in linked official documents.
 
 ---
 
-## 3. Таблицы характеристик и списки (AI-Ready Data)
+## 3. Tables for comparisons
 
-ИИ парсит таблицы данных в десятки раз быстрее, чем сплошной текст:
+Assistants parse tables faster than prose. Use real `<table>` markup with `<thead>`:
 
-```html
-<table class="ai-data-table">
-  <thead>
-    <tr>
-      <th>Modelo</th>
-      <th>Potencia</th>
-      <th>Eficiencia</th>
-      <th>Garantía</th>
-      <th>Precio estimado</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Panel Monocristalino N-Type</td>
-      <td>450 W</td>
-      <td>22,5 %</td>
-      <td>25 años</td>
-      <td>139 €</td>
-    </tr>
-  </tbody>
-</table>
-```
+| Model | Power | Efficiency | Warranty |
+|---|---|---|---|
+| [example] | [value] | [value] | [value] |
+
+Fill in values from your product data, not from this example.
 
 ---
 
-## 4. Ссылки на законы и государственные бюллетени Испании
+## 4. Sources
 
-Для закрепления статуса доверия в контенте всегда указываются ссылки на первоисточники:
-* **RD 244/2019** — закон Испании о компенсации излишков и коллективном потреблении;
-* **BOE (Boletín Oficial del Estado)** — регламент налоговых вычетов IRPF;
-* **Plan MOVES III** — государственная субсидия на зарядные станции для электрокаров.
+Name primary sources: the law, the official gazette, the grant programme page. Link them. A claim with a link to the regulation is quoted more often than one without.
+
+---
+
+## 5. Measurement
+
+Track which pages appear in AI answers with a manual check each month, and record it in the project's `docs/METRICS.md`. Do not record a figure you did not observe.

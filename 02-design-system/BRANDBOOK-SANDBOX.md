@@ -1,52 +1,52 @@
-# 02-Design-System · Brandbook & Sandbox (/ui)
+# 02 · Brandbook and sandbox (`/ui`)
 
-> Страница `/ui` в проекте — это не просто документация, а **живой интерактивный полигон компонентов (Storybook)** и единый язык коммуникации между человеком и ИИ.
+The `/ui` page of a project is a live sandbox: every foundation token and every base component, shown in its real code. It is the shared vocabulary between people and agents.
 
 ---
 
-## 1. Концепция стабильных меток компонентов (Component IDs)
+## 1. Stable component IDs
 
-Каждый переиспользуемый паттерн в дизайн-системе имеет уникальный краткий буквенно-цифровой идентификатор:
+Every reusable pattern has one short ID:
 
-| ID | Название компонента | Назначение |
+| ID | Name | Use |
 |---|---|---|
-| **`BTN-01`** | Primary Action Button | Главная кнопка с заливкой `--color-sun` и стрелкой `→` |
-| **`BTN-02`** | Outline Secondary Button | Второстепенная контурная кнопка |
-| **`CTL-01`** | Segmented Tab Switcher | Сегментный переключатель вкладок/периодов |
-| **`PRICE-01`** | Formatted Solar Price | Ценник с суффиксом валюты и опциональной пометой «от» |
-| **`CARD-01`** | Base Product Card | Базовая карточка товара каталога с модификаторами |
-| **`CARD-02`** | Plan / Tariff Card | Карточка тарифа/пакета со списком опций |
-| **`SLD-01`** | Card Carousel / Slider | Универсальный слайдер со `scroll-snap` и навигацией |
-| **`HOOK-01`** | Hero Overlap Hook | Плашка-крючок под обложкой (калькулятор счёта, пробег) |
+| `BTN-01` | Primary button | main action; sun fill with an arrow |
+| `BTN-02` | Outline button | secondary action |
+| `CTL-01` | Segmented switch | tabs or periods |
+| `COUNTER-01` | Bounded numeric counter | number input with − / + buttons; variant `-inner` |
+| `PRICE-01` | Formatted price | amount with currency suffix and optional "from" label |
+| `CARD-01` | Base product card | catalogue item with modifiers |
+| `CARD-02` | Plan / tariff card | package with a list of options |
+| `SLD-01` | Card slider | scroll-snap slider with navigation |
+| `HOOK-01` | Overlap hook | panel that overlaps a cover image |
 
-### Как это используется в работе:
-Вместо того чтобы писать разработчику или ИИ:
-> *«Сделай мне карточку товара, где сверху картинка, снизу цена, обведи желтой рамочкой и поставь скругление 12px...»*
+**How it is used.** Instead of describing a card in full, say:
 
-Вы просто пишете:
-> *«Поставь в этот блок `CARD-01 -top` и кнопку `BTN-01`»*.
+> "Put `CARD-01 -top` in this block, with `BTN-01` as the action."
 
-И человек, и любой ИИ моментально понимают задачу на 100% однозначно, без разночтений и простыней текста.
+Both a person and an agent understand that without a second description.
 
 ---
 
-## 2. Интерактивная песочница на странице `/ui`
+## 2. What the sandbox shows
 
-Страница `/ui` (`app/pages/ui.vue`) содержит:
-1. **Интерактивные тумблеры состояний:**
-   Для каждого компонента выведены переключатели модификаторов:
-   - `[x] -top`
-   - `[x] -new`
-   - `[x] -compact`
-   - `[x] -dark`
-2. **Контекстный переключатель фона:**
-   Кнопки переключения подложки («На светлом фоне», «На темном фоне», «В модалке»), чтобы сразу видеть контрастность и поведение текста.
-3. **Кнопка «Скопировать код»:**
-   Рядом с каждым образцом расположена кнопка копирования эталонного Vue-сниппета для быстрой вставки в проект.
+1. **Modifier toggles** for each component: `-top`, `-new`, `-compact`, `-dark`.
+2. **Background switch:** light, dark, inside a modal. Contrast is visible on each.
+3. **Copy code** next to each example: the reference snippet for pasting into a project.
 
 ---
 
-## 3. Правило обновления брендбука
+## 3. Update rule
 
-Любой новый атом, молекула или токен, появляющийся в проекте, **обязан появиться на странице `/ui`**. Если компонента нет на `/ui`, он считается незавершенным.
-Страница `/ui` закрыта от индексации (`noindex, nofollow`) и исключена из `sitemap.xml`.
+Every new atom, molecule or token must appear in the sandbox before it is used on a page. A component that is missing from `/ui` is not finished. The sandbox is excluded from search indexing (`noindex, nofollow`) and from `sitemap.xml`.
+
+---
+
+## 4. Brand-first workflow
+
+1. Add or change foundations in `theme.css`.
+2. Add or change the entry in the sandbox.
+3. Build or change the component.
+4. Use the component on a page.
+
+Changing a token changes the sandbox first; the sandbox is the visual reference for review.

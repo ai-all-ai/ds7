@@ -1,38 +1,38 @@
-# 06-Business · EV & Solar Ecosystem (V2C, V2H, Plan MOVES III)
+# 06 · Electric vehicles and solar (example)
 
-> Современная связка солнечной энергетики и электромобильности. Как продавать умные зарядные станции и станции самопотребления.
-
----
-
-## 1. Зарядка от излишков солнца (100% Solar Surplus)
-
-Станции испанского производителя **V2C Trydan** — якорный продукт для направления `Movilidad`:
-* **Принцип:** Станция связывается по Wi-Fi с инвертором (Huawei, Livoltek, GoodWe). Если дом потребляет 1 кВт, а панели генерируют 5 кВт, оставшиеся 4 кВт излишка автоматически направляются в батарею автомобиля.
-* **Выгода:** Машина заряжается **чистой бесплатной энергией солнца (0 € расходов)**, не покупая ни одного кВт·ч из сети.
+> Example from a Spanish solar company. Product names, subsidy programmes and amounts are examples. Verify them before use.
 
 ---
 
-## 2. Метрика «Солнечный километр»
+## 1. Charging from surplus solar
 
-Клиентам тяжело воспринимать абстрактные технические показатели (кВт, амперы, вольты).
-В интерфейсе все формулы переводятся в **километры бесплатной езды**:
-* *«6 солнечных панелей на крыше = 45 км бесплатного ежедневного пробега»*.
-* *«Экономия на заправке автомобиля: более 180 € в месяц по сравнению с бензином»*.
+A home charger connected to the inverter over the local network can direct surplus solar power to the car. A household that uses 1 kW while the panels make 5 kW sends the remaining 4 kW to the car.
 
----
+**Benefit for the customer:** the car charges from solar energy that would otherwise go to the grid.
 
-## 3. V2H (Vehicle-to-Home) — Электромобиль как аккумулятор дома
-
-* Обычная домашняя батарея (например, 5 кВт·ч) стоит около 3 000 €.
-* Батарея современного электромобиля — **60–80 кВт·ч** (в 12–15 раз больше!).
-* Технология V2H позволяет использовать емкость электромобиля для питания дома в вечерние часы пиковых тарифов или при аварийных отключениях электросети.
+Check the compatible inverter brands before you promise this.
 
 ---
 
-## 4. Субсидии Plan MOVES III (Возврат до 70–80%)
+## 2. Show the benefit in terms people use
 
-Государственная программа Испании компенсирует большую часть стоимости зарядной станции и ее монтажа:
-* В карточках товаров V2C всегда выводятся две цены:
-  * Базовая цена оборудования;
-  * **Финальная цена после субсидии Plan MOVES III** (`782 € → 234 €`).
-* Это снимает ценовые возражения и стимулирует покупку комплекта «Панели + Зарядка».
+Technical units (kW, amperes, volts) are hard to compare. Show the result in distance or money:
+
+- "Six panels on the roof give about 45 km of driving per day."
+- "Compared with petrol, the monthly saving can exceed [amount calculated for this customer]."
+
+State the assumptions next to the figure.
+
+---
+
+## 3. Vehicle-to-home (V2H)
+
+A typical home battery stores about 5 kWh. A modern electric vehicle battery stores several times more. With V2H, the car supplies the home in the evening peak or during a grid outage, if the charger and the car support it.
+
+Say which models support V2H. Do not offer it to a customer whose hardware does not.
+
+---
+
+## 4. Subsidies
+
+Public programmes can cover part of the charger and installation cost. In the example company's catalogue, each product shows two prices: the equipment price and the price after the programme's share. Show both, with the programme name and the source.

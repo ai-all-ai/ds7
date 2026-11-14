@@ -1,10 +1,11 @@
-/**
- * DS7 Design Tokens
- * Базовые переменные дизайн-системы для любого современного веб-проекта.
+/*
+ * DS7 foundations: design tokens.
+ * Components read these variables only. Add a value here before using it anywhere.
+ * See 02-design-system/TOKENS-SPEC.md.
  */
 
 :root {
-  /* 1. Поверхности и контрастный текст */
+  /* 1. Surfaces and text */
   --color-paper: #f7f5ef;
   --color-white: #ffffff;
   --color-ink: #1f1b16;
@@ -12,11 +13,11 @@
   --color-ink-100: rgba(31, 27, 22, 0.08);
   --color-ink-950: #12100d;
 
-  /* 2. Фирменный акцент (Солнце) */
+  /* 2. Brand accent (fill only, never text) */
   --color-sun: #ffd84d;
   --color-sun-hover: #ffcf2e;
 
-  /* 3. Отступы (Spacing Scale) */
+  /* 3. Spacing scale */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -26,23 +27,29 @@
   --space-12: 3rem;
   --space-16: 4rem;
 
-  /* Семантические отступы секций */
+  /* Section rhythm */
   --space-single: clamp(1.2rem, 3vw, 2.2rem);
   --space-double: clamp(2.4rem, 6vw, 4.5rem);
   --space-triple: clamp(3.6rem, 9vw, 6.5rem);
 
-  /* Базовый контейнер */
+  /* Page grid */
   --content-width: 78rem;
   --page-gutter: clamp(1rem, 3.5vw, 2rem);
 
-  /* 4. Тени и глубина (Elevation) */
+  /* 4. Elevation */
   --shadow-lift: 0 4px 16px -2px rgba(31, 27, 22, 0.06);
   --shadow-hover: 0 12px 32px -4px rgba(31, 27, 22, 0.12);
   --shadow-modal: 0 24px 64px -8px rgba(18, 16, 13, 0.24);
 
-  /* 5. Радиусы скругления */
+  /* 5. Radius */
   --radius-sm: 0.375rem;
   --radius-md: 0.75rem;
   --radius-lg: 1.25rem;
   --radius-full: 9999px;
+
+  /* 6. Breakpoints (for media queries; components use container queries) */
+  --bp-sm: 480px;
+  --bp-md: 800px;
+  --bp-lg: 900px;
+  --bp-xl: 1200px;
 }
