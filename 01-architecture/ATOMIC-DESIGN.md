@@ -1,62 +1,68 @@
-# 01-Architecture · Atomic Design & Component Hierarchy
+# 01 · Atomic Design and component levels
 
-> Методология построения интерфейса основана на принципах [Atomic Design Брэда Фроста (Brad Frost)](https://atomicdesign.bradfrost.com/chapter-2/) с акцентом на **полную автономность (self-contained)** и **компонуемость (composability)** каждого блока.
+Components are organised in five levels, after [Brad Frost's Atomic Design](https://atomicdesign.bradfrost.com/chapter-2/). Each level depends only on the levels below it. The goal is that a block works anywhere: on a page, in a sidebar, in a modal, or nested inside another block.
 
 ---
 
-## 1. Пять уровней иерархии
+## 1. Levels
 
 ```
-[1. ATOMS]       ───> Неделимые кирпичики: кнопки, иконки, бейджи, инпуты, цены
-     │
-[2. MOLECULES]   ───> Связки атомов: карточка товара, карточка тарифа, навигация слайдера
-     │
-[3. ORGANISMS]   ───> Автономные виджеты: слайдер карточек, сетка преимуществ, FAQ, калькулятор
-     │
-[4. TEMPLATES]   ───> Каркасы секций и лэндингов: Hero-секция, шаблон направления
-     │
-[5. PAGES]       ───> Маршруты Nuxt (app/pages/*): получение данных из app/data/ и передача в шаблоны
+[1. Atoms]       indivisible parts: button, icon, badge, field, price
+      │
+[2. Molecules]   small groups of atoms: product card, plan card, slider controls
+      │
+[3. Organisms]   self-contained widgets: card slider, feature grid, FAQ, calculator
+      │
+[4. Templates]   section layouts that compose organisms
+      │
+[5. Pages]       routes: fetch data, set SEO, pass props
 ```
 
 ---
 
-## 2. Правила для каждого уровня
+## 2. Rules per level
 
-### Уровень 1: Атомы (`app/components/ui/`)
-- **Что входит:** `UiButton`, `UiIcon`, `UiPrice`, `UiProductBadge`, `UiField`, `UiLink`, `UiText`, `UiCrown`, `UiSun`.
-- **Правило изоляции:** Атомы абсолютно «слепы». Они не знают о существовании страниц, товаров или калькулятора. Управляются исключительно типизированными входными пропсами.
-- **Стилизация:** Базовый класс + короткие модификаторы (`.btn.-sun`, `.btn.-sm`, `.btn.-outline`).
+### Atoms — `app/components/ui/`
+- Examples: `UiButton`, `UiIcon`, `UiPrice`, `UiBadge`, `UiField`, `UiLink`.
+- Know nothing about pages, products or application state.
+- Styled with a base class and short modifiers: `.btn.-sun`, `.btn.-sm`, `.btn.-outline`.
 
-### Уровень 2: Молекулы (`app/components/ui/`)
-- **Что входит:** `UiProductCard` (карточка товара), `UiSectionHeading` (заголовок секции с eyebrow и подписью), `UiFeatureCard` (карточка преимущества), `UiPlanCard` (карточка тарифа/пакета), `UiSliderNav` (стрелки и точки).
-- **Правило изоляции:** Молекулы компонуются только из атомов и базовой HTML-разметки. Принимают данные через `defineProps` и слоты. Не имеют сайд-эффектов.
-- **Вложенность:** Молекула должна идеально смотреться и в 4-колоночном гриде на всю ширину страницы, и в узком сайдбаре (за счет `@container`).
+### Molecules — `app/components/ui/`
+- Examples: `UiProductCard`, `UiSectionHeading`, `UiFeatureCard`, `UiPlanCard`, `UiSliderNav`.
+- Built only from atoms and plain markup. Typed props and slots. No side effects.
+- Must look right in a four-column grid and in a narrow sidebar. Use container queries.
 
-### Уровень 3: Организмы (`app/components/ui/`, `sections/`, `site/`)
-- **Что входит:** `UiCardSlider` (универсальный слайдер), `UiFeatureGrid` (сетка преимуществ), `UiHeroHook` (плашка-крючок под Hero), `UiFaq` (аккордеон), `CalcPanel` (панель расчета), `SiteHeader`, `SiteFooter`.
-- **Правило изоляции:** Организмы функционально самодостаточны. Они сами управляют своим состоянием (скролл, активная вкладка, раскрытый аккордеон).
-- **Слоты:** Организмы-контейнеры обязаны работать через слоты (`<template #default="{ item }">`). Слайдер не должен быть зашит на товары — он крутит любые переданные молекулы.
+### Organisms — `app/components/ui/`, `sections/`, `site/`
+- Examples: `UiCardSlider`, `UiFeatureGrid`, `UiFaq`, `CalcPanel`, `SiteHeader`, `SiteFooter`.
+- Own their local state: scroll position, active tab, open accordion item.
+- Work through slots. A slider does not know that it shows products; it shows whatever molecules it receives.
 
-### Уровень 4: Шаблоны и Секции (`app/components/sections/`)
-- **Что входит:** `CalcSection`, `UiPageHero`, шаблоны направлений (`DirectionPage`).
-- **Правило:** Шаблоны соединяют организмы в законченный блок страницы, передавая в них структуру. Никакой захардкоженной логики под конкретные URL.
+### Templates and sections — `app/components/sections/`
+- Compose organisms into a complete block of a page.
+- No URL-specific logic and no hard-coded page content.
 
-### Уровень 5: Страницы (`app/pages/`)
-- **Что входит:** `index.vue`, `[slug].vue`, `movilidad.vue`, `mantenimiento.vue` и др.
-- **Правило:** Страницы отвечают **только** за 3 вещи:
-  1. Вызов composables для получения данных из `app/data/`;
-  2. Установку метатегов (`usePageSeo`);
-  3. Передачу данных в секции и шаблоны через пропсы.
-- **Запрет:** В файлах `app/pages/` **категорически запрещена прямая инлайн-верстка карточек, кастомных слайдеров и специфических сеток**.
+### Pages — `app/pages/`
+Pages do three things only:
+1. Call composables that read data from `app/data/`.
+2. Set page metadata (`usePageSeo`).
+3. Pass data to sections as props.
+
+Pages do not contain inline card markup, custom sliders or bespoke grids.
 
 ---
 
-## 3. Принцип «Внутрь чего-то еще и еще глубже»
+## 3. Embedding rule
 
-Любой компонент системы спроектирован так, чтобы его можно было вставить:
-1. В обычный поток страницы;
-2. Внутрь модального окна `UiModal`;
-3. Внутрь вкладки калькулятора или табов;
-4. Внутрь узкого сайдбара или всплывающей шторки.
+Every component must be placeable:
+1. in normal page flow;
+2. inside a modal;
+3. inside a tab or a calculator panel;
+4. inside a narrow sidebar or a drawer.
 
-Компонент рассчитывает свои размеры не от экрана (`@media`), а от родительского блока (`@container`).
+Size comes from the parent box (`@container`), not from the screen (`@media`).
+
+---
+
+## 4. Brand first
+
+Levels are built top-down from the brandbook. Atoms come from tokens and the sandbox entries in `02-design-system/BRANDBOOK-SANDBOX.md`. A component that exists only in a page is not finished until it is in the sandbox.

@@ -1,71 +1,62 @@
-# 03-Performance · Smart Assets Pipeline (Tight-Trim & Responsive Media)
+# 03 · Assets pipeline: tight trim and responsive images
 
-> Стандарт подготовки и вставки графики. Исключает вставку «сырых» тяжелых файлов и гарантирует идеальный LCP.
-
----
-
-## 1. Правило обрезки избыточных полей (Tight-Trim)
-
-Частая ошибка: дизайнер экспортирует PNG/WebP карточки товара или оборудования на холсте 1000×1000 px, где 60% площади — это прозрачные пустые поля вокруг предмета.
-
-### Почему это плохо:
-* Файл весит лишние байты из-за пустых пикселей;
-* Картинку невозможно ровно отцентрировать по сетке;
-* На мобильных экранах сам товар становится крошечным из-за огромных невидимых полей.
-
-### Стандарт DS7 (Tight-Trim):
-1. **Кадрирование по контуру:** Все прозрачные поля вокруг объекта обрезаются вплотную (если вокруг нет реальной рассеянной тени).
-2. **Прозрачный фон:** Изображения оборудования (панели, инверторы, зарядки) сохраняются на прозрачном фоне, чтобы легко ложиться на светлые, темные и цветные подложки.
-3. **Стабильное соотношение сторон:** В коде карточки задается контейнер со стабильным `aspect-ratio` (например, `aspect-ratio: 4/3` или `1/1`), а сама картинка центрируется через `object-fit: contain`.
+Images are prepared before they reach the code. Raw exports make pages heavy and products small.
 
 ---
 
-## 2. Адаптивная вставка через `<picture>` и `srcset`
+## 1. Tight trim
 
-Каждое растровое изображение подготавливается под конкретные размеры экрана:
+Typical problem: a product PNG exported on a 1000 × 1000 canvas where most pixels are empty transparent margin.
+
+Costs: extra bytes, off-centre objects in grids, and tiny products on phones.
+
+Rules:
+1. **Crop to the object** along its outline, keeping a real soft shadow if the design has one.
+2. **Keep transparency** for product cut-outs so they sit on light, dark and coloured backgrounds.
+3. **Fix the box.** The container has a stable `aspect-ratio` (`4/3` or `1/1`); the image is centred with `object-fit: contain`.
+
+---
+
+## 2. Responsive images
+
+Every raster image ships in several sizes. The reference component is `UiImg`: it takes a `src` string, builds a `srcset` from the generated variants, and writes `width`, `height` and lazy-loading attributes.
+
+Generated sizes (default): **400, 800 and 1200 px wide**, WebP, quality 82. Images smaller than 900 px are not resized up.
 
 ```html
-<picture>
-  <!-- 1. Мобильные устройства (ширина до 640px): компактный легкий файл -->
-  <source 
-    media="(max-width: 640px)" 
-    srcset="/images/p/hero-mobile.webp 1x, /images/p/hero-mobile@2x.webp 2x" 
-    type="image/webp"
-  >
-  <!-- 2. Десктопные экраны: полноразмерный файл с поддержкой Retina -->
-  <source 
-    srcset="/images/p/hero.webp 1x, /images/p/hero@2x.webp 2x" 
-    type="image/webp"
-  >
-  <!-- 3. Фоллбэк img с явными габаритами для нулевого CLS -->
-  <img 
-    src="/images/p/hero.webp" 
-    alt="Instalación solar fotovoltaica en Sevilla" 
-    width="1600" 
-    height="900" 
-    fetchpriority="high" 
-    loading="eager" 
-    decoding="async"
-  >
-</picture>
+<img
+  src="/images/p/hero-1200.webp"
+  srcset="/images/p/hero-400.webp 400w, /images/p/hero-800.webp 800w, /images/p/hero-1200.webp 1200w"
+  sizes="(max-width: 800px) 100vw, 60vw"
+  width="1200" height="900"
+  alt="Solar installation on a rooftop"
+  fetchpriority="high" loading="eager" decoding="async"
+>
 ```
 
----
-
-## 3. Правило `fetchpriority` и `loading`:
-
-| Расположение изображения | `loading` | `fetchpriority` | `decoding` | Назначение |
-|---|---|---|---|---|
-| **Главный баннер Hero (LCP)** | `eager` | `high` | `async` | Мгновенно загружается первым |
-| **Карточки товаров (2-й экран)** | `lazy` | `auto` | `async` | Загружается перед появлением в поле зрения |
-| **Нижние секции, отзывы, футер** | `lazy` | `low` | `async` | Загружается только при доскролле |
+Use `UiImg` rather than writing this by hand in every page.
 
 ---
 
-## 4. Скрипт автоматической подготовки ассетов
+## 3. Loading priorities
 
-В папке `tools/` рекомендуется держать легковесный скрипт (Python / Sharp), который:
-* Принимает новые картинки;
-* Обрезает прозрачные поля (`trim`);
-* Конвертирует в WebP и AVIF с качеством 82%;
-* Генерирует мобильные копии (`-400.webp`) и ретина-копии (`@2x.webp`).
+| Position | `loading` | `fetchpriority` | `decoding` |
+|---|---|---|---|
+| The LCP image above the fold | `eager` | `high` | `async` |
+| Cards below the fold | `lazy` | `auto` | `async` |
+| Footer and late sections | `lazy` | `low` | `async` |
+
+Only one image is the LCP image on a page. Mark it, do not mark several.
+
+---
+
+## 4. Asset script
+
+Keep a small script in `tools/` (Sharp or Python) that:
+- takes new images from a source folder;
+- trims transparent margins;
+- writes WebP (and AVIF where useful) at 400, 800 and 1200 px;
+- writes `app/data/image-variants.json`, the manifest `UiImg` reads;
+- has a `--check` mode that fails when a referenced image has no manifest entry.
+
+Commit the manifest with the images it describes.

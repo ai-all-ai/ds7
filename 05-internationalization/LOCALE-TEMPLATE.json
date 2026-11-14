@@ -1,32 +1,33 @@
 {
+  "_comment": "Locale template. Copy to i18n/locales/<code>.ts in your project and translate every value. Keys must match the base locale exactly.",
   "nav": {
-    "home": "Inicio",
-    "residential": "Hogares",
-    "business": "Empresas",
-    "mobility": "Movilidad",
-    "equipment": "Equipamiento",
-    "service": "Mantenimiento",
-    "contact": "Contactar"
+    "home": "Home",
+    "residential": "Residential",
+    "business": "Business",
+    "mobility": "Mobility",
+    "equipment": "Equipment",
+    "service": "Service",
+    "contact": "Contact"
   },
   "common": {
-    "viewProduct": "Ver producto",
-    "requestQuote": "Pedir presupuesto",
-    "calculate": "Calcular ahorro",
-    "fromPrice": "desde",
-    "close": "Cerrar",
-    "send": "Enviar",
-    "success": "Solicitud enviada correctamente"
+    "viewProduct": "View product",
+    "requestQuote": "Request a quote",
+    "calculate": "Calculate savings",
+    "fromPrice": "from",
+    "close": "Close",
+    "send": "Send",
+    "success": "Your request was sent"
   },
   "calc": {
-    "title": "Calcula tu ahorro solar",
-    "billLabel": "¿Cuánto pagas de luz al mes?",
-    "yearlySavings": "Ahorro anual estimado",
-    "recommendedPower": "Potencia recomendada",
-    "paybackTime": "Amortización estimada"
+    "title": "Calculate your solar savings",
+    "billLabel": "How much do you pay for electricity per month?",
+    "yearlySavings": "Estimated yearly savings",
+    "recommendedPower": "Recommended capacity",
+    "paybackTime": "Estimated payback period"
   },
   "badges": {
-    "top": "TOP Ventas",
-    "new": "Novedad",
-    "sale": "Oferta"
+    "top": "Best seller",
+    "new": "New",
+    "sale": "Offer"
   }
 }

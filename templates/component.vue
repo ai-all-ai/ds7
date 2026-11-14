@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * DS7 Component Template
- * Эталонная структура Vue 3 SFC (Composition API, Atomic Design, Container Queries)
+ * DS7 component template: product card molecule (CARD-01).
+ * Atomic level: molecule. Modifiers: -top, -new, -compact, -dark.
  */
 
 interface SpecItem {
@@ -9,14 +9,12 @@ interface SpecItem {
   value: string
 }
 
-// 1. Типизированные пропсы с модификаторами
 const props = withDefaults(defineProps<{
   title: string
   description?: string
   price?: number | null
   badge?: 'top' | 'new' | 'sale'
   specs?: SpecItem[]
-  // Булевые пропсы-модификаторы:
   top?: boolean
   compact?: boolean
   dark?: boolean
@@ -26,27 +24,26 @@ const props = withDefaults(defineProps<{
   specs: () => [],
   top: false,
   compact: false,
-  dark: false
+  dark: false,
 })
 
-// 2. Вычисление минималистичных классов
 const classes = computed(() => [
   'p-card',
   props.top && '-top',
   props.compact && '-compact',
   props.dark && '-dark',
-  props.badge && `-${props.badge}`
+  props.badge && `-${props.badge}`,
 ])
 </script>
 
 <template>
   <article :class="classes" data-ref="CARD-01">
-    <!-- Слот для графики или логотипа -->
+    <!-- Artwork or logo slot -->
     <div class="p-card__art">
       <slot name="art" />
     </div>
 
-    <!-- Текстовое тело -->
+    <!-- Text body -->
     <div class="p-card__body">
       <h3 class="p-card__title">{{ title }}</h3>
       <p v-if="description" class="p-card__desc">{{ description }}</p>
@@ -59,7 +56,7 @@ const classes = computed(() => [
       </dl>
     </div>
 
-    <!-- Футер с ценой и действием -->
+    <!-- Footer: price and action. The price is formatted by the project's price atom. -->
     <div class="p-card__footer">
       <div v-if="price !== null" class="p-card__price">
         <span class="p-card__price-val">{{ price }} €</span>
@@ -70,8 +67,9 @@ const classes = computed(() => [
 </template>
 
 <style>
-/* 
- * Стили компонента: изолируются через префикс и используют CSS Custom Properties
+/*
+ * Component styles. Not scoped: the prefix isolates them, and parents can
+ * override the custom properties. Values come from the tokens in theme.css.
  */
 .p-card {
   --card-bg: var(--color-white, #fff);
@@ -89,7 +87,6 @@ const classes = computed(() => [
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Модификатор TOP */
 .p-card.-top {
   --card-border: var(--color-sun, #ffd84d);
   box-shadow: var(--shadow-lift);
@@ -98,19 +95,16 @@ const classes = computed(() => [
   font-weight: 700;
 }
 
-/* Модификатор Dark */
 .p-card.-dark {
   --card-bg: var(--color-ink-950, #12100d);
   --card-ink: #ffffff;
   --card-border: rgba(255, 255, 255, 0.12);
 }
 
-/* Модификатор Compact */
 .p-card.-compact {
   padding: var(--space-2, 8px);
 }
 
-/* Контейнерная адаптивность */
 @container (max-width: 320px) {
   .p-card {
     padding: var(--space-2, 8px);

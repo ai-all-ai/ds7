@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: [18, 20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # The integration test installs a local build of @ai.all/aiall, so DS7 is
+      # tested against the AI-ALL code in the repository, not a published version.
+      - uses: actions/checkout@v4
+        with:
+          repository: ai-all-ai/aiall
+          path: aiall
+      - name: Pack AI-ALL for the integration test
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/aiall-pack"
+          mkdir -p "$dir"
+          cd "$GITHUB_WORKSPACE/aiall"
+          npm pack --pack-destination "$dir" --json > "$dir/pack.json"
+          file="$(node -p "require('$dir/pack.json')[0].filename")"
+          echo "AIALL_TARBALL=$dir/$file" >> "$GITHUB_ENV"
+
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm pack --dry-run
