@@ -25,6 +25,14 @@ jobs:
         with:
           repository: ai-all-ai/aiall
           path: aiall
+      - name: Pin AI-ALL to the version DS7 depends on
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').dependencies['@ai.all/aiall']" | sed 's/^[\^~]//')"
+          git -C aiall fetch --tags --quiet
+          git -C aiall checkout --quiet "v$version"
+          echo "AI-ALL pinned to v$version"
       - name: Pack AI-ALL for the integration test
         shell: bash
         run: |
@@ -36,6 +44,9 @@ jobs:
           file="$(node -p "require('$dir/pack.json')[0].filename")"
           echo "AIALL_TARBALL=$dir/$file" >> "$GITHUB_ENV"
 
+      - name: Check formatting
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run format:check
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm pack --dry-run
