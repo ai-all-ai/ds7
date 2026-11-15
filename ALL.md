@@ -24,10 +24,10 @@
 
 ## 0.1 Build order: brand first, then components
 
-New projects and new sections are built **top-down from the brand**, never by styling pages one by one:
+New projects and new sections are built **top-down from the brand**, never by styling pages one by one (see `01-architecture/PROJECT-ONBOARDING.md`):
 
-1. **Foundations** (project file `theme.css`, for example `app/assets/css/theme.css`; a starter is in `ds7/templates/theme.css`): colour, type scale, spacing, radius, shadow, breakpoints, z-index. Written as named tokens, with the W3C Design Tokens format (`$value`, `$type`) as the interchange shape if tools need it.
-2. **Brandbook** (`/ui` sandbox): every foundation token shown, then the base atoms (`BTN-01`, `BTN-02`, `CTL-01`, `COUNTER-01`, `PRICE-01`) with their modifiers, states and contrast on light and dark backgrounds.
+1. **Brand Specification & Foundations** (`docs/BRAND.md` intake and `theme.css`): colour, type scale, spacing, radius, shadow, breakpoints, z-index. Written as named tokens.
+2. **Brandbook** (`/ui` sandbox, starter in `templates/ui.vue`): every foundation token shown, then the base atoms (`BTN-01`, `BTN-02`, `CTL-01`, `COUNTER-01`, `PRICE-01`) with their modifiers, states and contrast on light and dark backgrounds.
 3. **Atoms and molecules** built from the brandbook only. A component that is not in the sandbox is not finished.
 4. **Organisms and sections** composed from molecules.
 5. **Pages** assembled from sections, with data from `app/data/`.
@@ -82,6 +82,7 @@ Full rules: `02-design-system/NAMING-CONVENTIONS.md` and `01-architecture/MODIFI
 - **Page context:** `body.page-<slug>` set by `usePageSeo`. Override shared components through that class or through CSS custom properties. Never through a new file.
 - **Colour in components:** tokens only (`var(--color-…)`). No raw hex or `rgb()` in component CSS.
 - **Yellow accent (`--color-sun`) is never text.** It is a fill, a badge background or a marker.
+- **Enforcement:** Run `npx @ai.all/ds7 guard` (`07-testing/VALIDATORS-AND-GUARDS.md`). It forbids baked-in modifier classes, checks atomic layer boundaries, and flags pages exceeding 40 lines of scoped CSS.
 
 ---
 
@@ -96,8 +97,10 @@ Full rules: `02-design-system/NAMING-CONVENTIONS.md` and `01-architecture/MODIFI
 
 ## 5. Images and fonts
 
-Full rules: `03-performance-web-vitals/ASSETS-PIPELINE.md`, `03-performance-web-vitals/FONTS-ZERO-CLS.md`.
+Full rules: `03-performance-web-vitals/ASSETS-PIPELINE.md`, `03-performance-web-vitals/FONTS-ZERO-CLS.md`, `03-performance-web-vitals/MEDIA-LIBRARY-DS5.md`.
 
+- **Developer Media Library:** Unprocessed originals (`ds5/`, `.ds5/`) remain in `.gitignore`. Production assets live in `public/`.
+- **Responsive variants:** Generate multi-resolution WebP variants via `npx @ai.all/ds7 images` (`--check` in CI).
 - **Every image from `public/` goes through the responsive image component** (`UiImg` in the reference project). Raw `<img src="/…">` is allowed only when the component wraps it.
 - **Explicit `width` and `height`** (or an `aspect-ratio` box) on every image. This gives CLS 0.
 - **Lazy by default.** The single LCP image above the fold is `eager` with `fetchpriority="high"`.
@@ -235,4 +238,4 @@ Full strategy: `08-token-optimization/TOKEN-STRATEGY.md`.
 | `SLD-01` | Card slider with scroll-snap | same |
 | `HOOK-01` | Overlap hook under the cover | same |
 
-**Before you finish any task, check:** no hard-coded UI text · no raw colours · no copied component · every image sized and routed through the image component · i18n keys in all locales · axe clean at 390 / 820 / 1440 · CHANGELOG line added · no junk left in the repo · security headers and the 404 page unchanged or documented.
+**Before you finish any task, check:** no hard-coded UI text · no raw colours · no copied component · every image sized and routed through the image component · `npx @ai.all/ds7 guard` clean · i18n keys in all locales · axe clean at 390 / 820 / 1440 · CHANGELOG line added · no junk left in the repo · security headers and the 404 page unchanged or documented.
