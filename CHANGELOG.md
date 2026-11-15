@@ -4,7 +4,22 @@ All notable changes to DS7 are recorded here. Format: [Keep a Changelog](https:/
 
 ## [Unreleased]
 
-## [2.1.0] — 2026-11-14
+## [2.2.0] — 2026-11-16
+
+### Added
+- `07-testing/VALIDATORS-AND-GUARDS.md`: documentation for zero-footprint CLI validators and automated quality gates.
+- `03-performance-web-vitals/MEDIA-LIBRARY-DS5.md`: architecture specification for the isolated developer media library (DS5), zero-repo-bloat `.gitignore` policy, and `sharp` processing pipeline.
+- `01-architecture/PROJECT-ONBOARDING.md`: fast 4-step onboarding guide and brand intake workflow.
+- `templates/BRAND.md`: standardized project brand specification template.
+- `templates/ui.vue`: clean starter brandbook sandbox page with neutral monochrome styling, token swatches, and atomic component previews.
+- `templates/ALL.project.md`: concise project-specific instruction block for root `ALL.md`.
+- `npx @ai.all/ds7 guard`: built-in zero-dependency validator enforcing modifier class naming (`.-modifier`), atomic-design layer boundaries, and page scoped CSS line budgets.
+- `npx @ai.all/ds7 images`: built-in responsive WebP image generator and manifest updater (`--check` in CI).
+- CLI `init` automatically scaffolds `docs/BRAND.md`, updates `.gitignore` for DS5 media, and configures `guard` scripts in `package.json`.
+
+### Changed
+- The pack routes agents to `ds7.validators`, `ds7.medialib`, and `ds7.onboarding`.
+- Pre-finish checklist in `ds7/ALL.md` requires `npx @ai.all/ds7 guard` verification.
 
 ### Added
 - `09-security-errors/`: security headers, secrets, dependency rules, input, 404 and 500 pages, with checks.

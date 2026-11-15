@@ -21,10 +21,12 @@ i18n/
 
 ---
 
-## 2. Adding a language
+## 2. Adding a language & Translation Workflow
 
-1. Copy the base locale file to `[code].ts` and translate every value. Keys stay the same.
-2. Register the language:
+1. **Base Locale:** `i18n/locales/es.ts` is the single source of truth for key structure.
+2. **Translation:** When translating to a new language (`en.ts`, `uk.ts`), copy `es.ts` and translate the values while keeping all key paths identical.
+3. **Parity Enforcement:** The parity check ensures every key in the base locale exists in target locales without missing placeholders or trailing commas.
+4. **Registration:** Register the language in `nuxt.config.ts`:
 
 ```ts
 // nuxt.config.ts

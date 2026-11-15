@@ -1,6 +1,6 @@
 {
   "name": "@ai.all/ds7",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "AI-ready architecture standard for web projects: brand-first foundations, Atomic Design and agent rules in one place",
   "keywords": [
     "architecture",

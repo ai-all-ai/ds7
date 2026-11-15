@@ -12,11 +12,17 @@
 
 Preview and staging use the same build as production. Only the environment variables differ.
 
-## 2. Build
+## 2. Build and Containerization
 
 - The build is static (`nuxt generate`). Every route is prerendered, including `404.html`.
 - The build fails when a referenced asset, a locale key or a structured-data value is missing (see `ALL.md` sections 5 and 7).
 - The build output is not committed. The host builds it from the commit.
+
+### Containerized Deployment (Docker)
+For environments requiring containerized execution, DS7 provides multi-stage starter files (`templates/Dockerfile` and `templates/compose.yml`):
+- **Stage 1 (Builder):** Uses `node:22-alpine` to compile dependencies and run prerendering.
+- **Stage 2 (Runner):** Lightweight `nginx:alpine` serving static output with minimal memory footprint (< 25 MB).
+- **Run command:** `docker compose up -d` mapping the project's port specified in `docs/BRAND.md`.
 
 ## 3. Release checklist
 
