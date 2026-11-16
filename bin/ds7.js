@@ -120,7 +120,8 @@ function packManifest() {
       {
         id: 'ds7.onboarding',
         title: 'Project onboarding & brand intake',
-        summary: 'Read when starting a project: brand intake specification and fast 4-step onboarding.',
+        summary:
+          'Read when starting a project: brand intake specification and fast 4-step onboarding.',
         doc: doc('01-architecture/PROJECT-ONBOARDING.md'),
       },
       {
@@ -150,7 +151,8 @@ function packManifest() {
       {
         id: 'ds7.validators',
         title: 'Validators & quality gates',
-        summary: 'Read before running quality checks: class-name guard, images pipeline, runtime checks.',
+        summary:
+          'Read before running quality checks: class-name guard, images pipeline, runtime checks.',
         doc: doc('07-testing/VALIDATORS-AND-GUARDS.md'),
       },
       {
@@ -204,7 +206,9 @@ function runAiall(args) {
     const r = spawnSync(process.execPath, [bin, ...args, '--path', TARGET], { stdio: 'inherit' });
     return r.status === 0;
   }
-  const r = spawnSync('npx', ['--yes', '@ai.all/aiall@^1.0.0', ...args, '--path', TARGET], { stdio: 'inherit' });
+  const r = spawnSync('npx', ['--yes', '@ai.all/aiall@^1.0.0', ...args, '--path', TARGET], {
+    stdio: 'inherit',
+  });
   return r.status === 0;
 }
 
@@ -330,10 +334,16 @@ function cmdInit() {
   ensurePackageScripts();
 
   console.log(`\n${C.bold}${C.green}DS7 is installed.${C.reset}`);
-  console.log(`  1. Fill in ${C.cyan}docs/BRAND.md${C.reset} with colors, typography, and page requirements.`);
+  console.log(
+    `  1. Fill in ${C.cyan}docs/BRAND.md${C.reset} with colors, typography, and page requirements.`,
+  );
   console.log(`  2. Add project-specific guidelines to root ${C.cyan}ALL.md${C.reset}.`);
-  console.log(`  3. Run ${C.cyan}npx @ai.all/ds7 guard${C.reset} to verify modifier class names and atomic layers.`);
-  console.log(`  4. Run ${C.cyan}npx @ai.all/ds7 update${C.reset} to get new versions of the standard.\n`);
+  console.log(
+    `  3. Run ${C.cyan}npx @ai.all/ds7 guard${C.reset} to verify modifier class names and atomic layers.`,
+  );
+  console.log(
+    `  4. Run ${C.cyan}npx @ai.all/ds7 update${C.reset} to get new versions of the standard.\n`,
+  );
 }
 
 function cmdSync() {
@@ -383,7 +393,8 @@ function cmdGuard() {
   const pathIdx = process.argv.indexOf('--path');
   const targetDir = pathIdx > -1 ? path.resolve(process.argv[pathIdx + 1]) : TARGET;
 
-  const BAD = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-(?:active|big|small|large|orange|red|green|blue|dark|light|new|alt|v\d)$/;
+  const BAD =
+    /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-(?:active|big|small|large|orange|red|green|blue|dark|light|new|alt|v\d)$/;
   const ALLOW = new Set([
     'is-active',
     'btn-active',
@@ -394,12 +405,21 @@ function cmdGuard() {
   ]);
 
   const found = new Map();
-  const searchDirs = ['app', 'src', 'components', 'pages'].map((d) => path.join(targetDir, d)).filter((d) => fs.existsSync(d));
+  const searchDirs = ['app', 'src', 'components', 'pages']
+    .map((d) => path.join(targetDir, d))
+    .filter((d) => fs.existsSync(d));
   if (!searchDirs.length) searchDirs.push(targetDir);
 
   const walk = (d) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
-      if (e.name === 'node_modules' || e.name === 'dist' || e.name === '.output' || e.name === '.nuxt' || e.name.startsWith('.')) continue;
+      if (
+        e.name === 'node_modules' ||
+        e.name === 'dist' ||
+        e.name === '.output' ||
+        e.name === '.nuxt' ||
+        e.name.startsWith('.')
+      )
+        continue;
       const p = path.join(d, e.name);
       if (e.isDirectory()) walk(p);
       else if (/\.(vue|html|jsx|tsx|svelte|astro|css|scss)$/.test(e.name)) {
@@ -422,7 +442,8 @@ function cmdGuard() {
 
   // Atomic-design layer checks (components/ui must not use upper-layer components)
   const layerIssues = [];
-  const UP = /(?<=[\s>])<(Home|Sections|Site|Shop|Calc|Direction|Hook|Info|Maint|Blog|Legal|Layout)[A-Z]\w*/g;
+  const UP =
+    /(?<=[\s>])<(Home|Sections|Site|Shop|Calc|Direction|Hook|Info|Maint|Blog|Legal|Layout)[A-Z]\w*/g;
   const findVues = (d) => {
     if (!fs.existsSync(d)) return [];
     return fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
@@ -436,7 +457,9 @@ function cmdGuard() {
     const text = fs.readFileSync(f, 'utf8');
     const matches = text.match(UP);
     if (matches) {
-      layerIssues.push(`ui → upper layer: ${path.relative(TARGET, f)} uses ${[...new Set(matches)].join(', ')}`);
+      layerIssues.push(
+        `ui → upper layer: ${path.relative(TARGET, f)} uses ${[...new Set(matches)].join(', ')}`,
+      );
     }
   }
 
@@ -448,7 +471,9 @@ function cmdGuard() {
     const styleMatch = text.match(/<style[^>]*>([\s\S]*?)<\/style>/);
     const lines = styleMatch ? styleMatch[1].split('\n').length : 0;
     if (lines > 40) {
-      layerIssues.push(`page with ${lines} style lines (move to a component/molecule): ${path.relative(TARGET, f)}`);
+      layerIssues.push(
+        `page with ${lines} style lines (move to a component/molecule): ${path.relative(TARGET, f)}`,
+      );
     }
   }
 
@@ -464,8 +489,12 @@ function cmdGuard() {
   if (total === 0) {
     ok(`All checks passed. No modifier anti-patterns or layer violations found.\n`);
   } else {
-    console.log(`\n${C.yellow}Found ${found.size} baked-in modifier class(es), ${layerIssues.length} layer/style issue(s).${C.reset}`);
-    console.log(`Fix: use separate hyphen modifiers (.card.-top) and move page styles to components.\n`);
+    console.log(
+      `\n${C.yellow}Found ${found.size} baked-in modifier class(es), ${layerIssues.length} layer/style issue(s).${C.reset}`,
+    );
+    console.log(
+      `Fix: use separate hyphen modifiers (.card.-top) and move page styles to components.\n`,
+    );
     if (strict) process.exit(1);
   }
 }
@@ -496,10 +525,11 @@ async function cmdImages() {
   const QUALITY = 72;
   const VARIANT = /-(\d{3,4})\.webp$/;
 
-  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
-    const p = path.join(d, e.name);
-    return e.isDirectory() ? walk(p) : [p];
-  });
+  const walk = (d) =>
+    fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
+      const p = path.join(d, e.name);
+      return e.isDirectory() ? walk(p) : [p];
+    });
 
   const sources = walk(imgRoot).filter((f) => /\.(webp|jpe?g|png)$/i.test(f) && !VARIANT.test(f));
   const manifest = {};
@@ -524,7 +554,10 @@ async function cmdImages() {
         stale.push(out);
         continue;
       }
-      await sharp(file).resize({ width: w, withoutEnlargement: true }).webp({ quality: QUALITY }).toFile(out);
+      await sharp(file)
+        .resize({ width: w, withoutEnlargement: true })
+        .webp({ quality: QUALITY })
+        .toFile(out);
       built++;
     }
     if (made.length) manifest[url] = made;
