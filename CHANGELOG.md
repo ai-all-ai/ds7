@@ -4,6 +4,17 @@ All notable changes to DS7 are recorded here. Format: [Keep a Changelog](https:/
 
 ## [Unreleased]
 
+## [2.3.0] — 2026-11-23
+
+### Added
+- `npx @ai.all/ds7 check`: comprehensive multi-gate health checker combining modifier/atomic guard, raw color token discipline, i18n locale key parity, and repository hygiene.
+- Interactive Brand Intake questionnaire in CLI `init` prompting for brand name, dev server port, brand color, and locales to automatically personalize `docs/BRAND.md`.
+- `package.json` scripts `check` (`ds7 check`) and `check:strict` (`ds7 check --strict`) automatically scaffolded on `init`.
+- `Makefile` template configures `make check` to trigger `npx @ai.all/ds7 check --strict`.
+
+### Changed
+- Pre-finish checklist in `ds7/ALL.md` requires `npx @ai.all/ds7 check` verification.
+
 ## [2.2.0] — 2026-11-16
 
 ### Added
@@ -20,6 +31,8 @@ All notable changes to DS7 are recorded here. Format: [Keep a Changelog](https:/
 ### Changed
 - The pack routes agents to `ds7.validators`, `ds7.medialib`, and `ds7.onboarding`.
 - Pre-finish checklist in `ds7/ALL.md` requires `npx @ai.all/ds7 guard` verification.
+
+## [2.1.0] — 2026-11-14
 
 ### Added
 - `09-security-errors/`: security headers, secrets, dependency rules, input, 404 and 500 pages, with checks.

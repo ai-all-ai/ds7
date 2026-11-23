@@ -51,9 +51,12 @@ npx @ai.all/ds7 update
 
 | Command | What it does |
 |---|---|
-| `npx @ai.all/ds7` | Copy the standard to `ds7/`, write `ds7/aiall-pack.json`, run `aiall init`, enable the `ds7` pack |
+| `npx @ai.all/ds7` | Copy standard to `ds7/`, write `ds7/aiall-pack.json`, run `aiall init`, enable `ds7` pack, scaffold `docs/BRAND.md`, `Makefile`, and guard scripts |
 | `npx @ai.all/ds7 sync` | Run `aiall sync`; restores missing entrypoints, keeps existing files |
 | `npx @ai.all/ds7 update` | Overwrite `ds7/` and `ds7/aiall-pack.json` with this version, then run `aiall sync`. Project text in the root `ALL.md` is kept |
+| `npx @ai.all/ds7 guard` | Check modifier class names (`.-modifier`), atomic layer boundaries, and page style limits (`--strict`) |
+| `npx @ai.all/ds7 check` | Comprehensive health check: runs guard, token discipline (raw colors), i18n parity, and hygiene (`--strict` for CI) |
+| `npx @ai.all/ds7 images` | Generate responsive WebP image variants (`--check` fails if variants missing) |
 | `npx @ai.all/ds7 --version` | Print the version |
 | `npx @ai.all/ds7 --help` | Print usage |
 
@@ -64,6 +67,8 @@ npx @ai.all/ds7 update
 | `ds7/**` | the standard | copies, keeps existing | overwrites |
 | `ds7/aiall-pack.json` | the CLI, generated from its version | creates | overwrites |
 | `ds7/VERSION` | the CLI | writes | writes |
+| `docs/BRAND.md` | project brand intake | creates if missing | not changed |
+| `Makefile` | project automation | creates if missing | not changed |
 | `ALL.md` (root) | AI-ALL; the text below the packs block is yours | created by AI-ALL | not changed by DS7 |
 | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, ... | AI-ALL | created by AI-ALL | not changed by DS7 |
 
@@ -71,8 +76,8 @@ Put project values in the root `ALL.md`, below the AI-ALL packs block. Edits to 
 
 ## Git
 
-- Commit `ds7/`, the root `ALL.md` and the agent entrypoints (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, ...).
-- DS7 and AI-ALL do not change `.gitignore`. Add ignore rules to your project for `node_modules/`, `.nuxt/`, `.output/`, `dist/`, logs, and `.env` files. The `.gitignore` of the DS7 repository is an example.
+- Commit `ds7/`, `docs/BRAND.md`, the root `ALL.md` and the agent entrypoints (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, ...).
+- On `init`, DS7 ensures raw developer media folders (`ds5/`, `.ds5/`, `*.tmp-pv`) are added to `.gitignore`. Add project-specific rules for `node_modules/`, `.nuxt/`, `.output/`, `dist/`, logs, and `.env` files.
 - Never commit secrets. Keep them in a git-ignored `.env` or in the host's environment, and list only their names in `.env.example`. See `ds7/09-security-errors/SECURITY-AND-ERRORS.md`.
 
 ## Contributing and security

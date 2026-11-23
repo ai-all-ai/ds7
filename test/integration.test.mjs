@@ -65,6 +65,22 @@ test('DS7 installs as the ds7 pack of AI-ALL and stays consistent across update'
       fs.existsSync(path.join(project, 'ds7', '10-operations', 'DEPLOYMENT.md')),
       'operations docs missing',
     );
+    assert.ok(
+      fs.existsSync(path.join(project, 'docs', 'BRAND.md')),
+      'docs/BRAND.md must be scaffolded on init',
+    );
+    assert.ok(fs.existsSync(path.join(project, 'Makefile')), 'Makefile must be scaffolded on init');
+    assert.ok(
+      fs.readFileSync(path.join(project, '.gitignore'), 'utf8').includes('ds5/'),
+      '.gitignore must contain ds5/ media intake entry',
+    );
+    const pkgJson = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), 'utf8'));
+    assert.equal(pkgJson.scripts.guard, 'ds7 guard');
+    assert.equal(pkgJson.scripts['guard:strict'], 'ds7 guard --strict');
+    assert.equal(pkgJson.scripts.check, 'ds7 check');
+    assert.equal(pkgJson.scripts['check:strict'], 'ds7 check --strict');
+    exec(process.execPath, [ds7, 'guard', '--strict', '--path', project], project);
+    exec(process.execPath, [ds7, 'check', '--strict', '--path', project], project);
     const rootAll = fs.readFileSync(path.join(project, 'ALL.md'), 'utf8');
     assert.ok(rootAll.includes('<!-- aiall:begin packs -->'));
     assert.ok(rootAll.includes('ds7/ALL.md'), 'root ALL.md must link to the ds7 rules');

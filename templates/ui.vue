@@ -4,18 +4,18 @@
 useHead({
   title: 'Brandbook & Design System Sandbox',
   meta: [{ name: 'robots', content: 'noindex,nofollow' }],
-})
+});
 
-const isDark = ref(false)
-const copied = ref('')
-let timer: ReturnType<typeof setTimeout> | undefined
+const isDark = ref(false);
+const copied = ref('');
+let timer: ReturnType<typeof setTimeout> | undefined;
 
 const copyText = (text: string) => {
-  navigator.clipboard.writeText(text)
-  copied.value = text
-  clearTimeout(timer)
-  timer = setTimeout(() => (copied.value = ''), 2000)
-}
+  navigator.clipboard.writeText(text);
+  copied.value = text;
+  clearTimeout(timer);
+  timer = setTimeout(() => (copied.value = ''), 2000);
+};
 
 const tokens = [
   { name: '--color-brand', label: 'Brand Primary' },
@@ -23,15 +23,40 @@ const tokens = [
   { name: '--color-paper', label: 'Paper / Background' },
   { name: '--color-ink', label: 'Ink / Text' },
   { name: '--color-line', label: 'Line / Border' },
-]
+];
 
 const components = [
-  { id: 'BTN-01', name: 'Primary Button', selector: '.btn.-primary', desc: 'Main conversion action' },
-  { id: 'BTN-02', name: 'Secondary Button', selector: '.btn.-secondary', desc: 'Secondary or outline action' },
-  { id: 'CTL-01', name: 'Segmented Control', selector: '.ctl-switch', desc: 'Tabs, modes, or period toggles' },
-  { id: 'PRICE-01', name: 'Price Tag', selector: '.price-tag', desc: 'Price presentation with currency symbol' },
-  { id: 'CARD-01', name: 'Product / Service Card', selector: '.p-card', desc: 'Reusable card with modifiers' },
-]
+  {
+    id: 'BTN-01',
+    name: 'Primary Button',
+    selector: '.btn.-primary',
+    desc: 'Main conversion action',
+  },
+  {
+    id: 'BTN-02',
+    name: 'Secondary Button',
+    selector: '.btn.-secondary',
+    desc: 'Secondary or outline action',
+  },
+  {
+    id: 'CTL-01',
+    name: 'Segmented Control',
+    selector: '.ctl-switch',
+    desc: 'Tabs, modes, or period toggles',
+  },
+  {
+    id: 'PRICE-01',
+    name: 'Price Tag',
+    selector: '.price-tag',
+    desc: 'Price presentation with currency symbol',
+  },
+  {
+    id: 'CARD-01',
+    name: 'Product / Service Card',
+    selector: '.p-card',
+    desc: 'Reusable card with modifiers',
+  },
+];
 </script>
 
 <template>
@@ -73,7 +98,12 @@ const components = [
             <div class="bb__comp-head">
               <span class="bb__comp-id">{{ c.id }}</span>
               <h3 class="bb__comp-name">{{ c.name }}</h3>
-              <button type="button" class="bb__copy-btn" :title="`Copy ${c.selector}`" @click="copyText(c.selector)">
+              <button
+                type="button"
+                class="bb__copy-btn"
+                :title="`Copy ${c.selector}`"
+                @click="copyText(c.selector)"
+              >
                 Copy Class
               </button>
             </div>
@@ -208,7 +238,8 @@ const components = [
   font-size: 1rem;
   flex: 1;
 }
-.bb__copy-btn, .bb__btn {
+.bb__copy-btn,
+.bb__btn {
   padding: 0.25rem 0.625rem;
   border: 1px solid var(--color-line, rgba(0, 0, 0, 0.2));
   border-radius: 9999px;

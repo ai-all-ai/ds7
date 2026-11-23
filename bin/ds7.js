@@ -16,6 +16,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
 const { spawnSync } = require('child_process');
 
 const C = {
@@ -120,7 +121,8 @@ function packManifest() {
       {
         id: 'ds7.onboarding',
         title: 'Project onboarding & brand intake',
-        summary: 'Read when starting a project: brand intake specification and fast 4-step onboarding.',
+        summary:
+          'Read when starting a project: brand intake specification and fast 4-step onboarding.',
         doc: doc('01-architecture/PROJECT-ONBOARDING.md'),
       },
       {
@@ -150,7 +152,8 @@ function packManifest() {
       {
         id: 'ds7.validators',
         title: 'Validators & quality gates',
-        summary: 'Read before running quality checks: class-name guard, images pipeline, runtime checks.',
+        summary:
+          'Read before running quality checks: class-name guard, images pipeline, runtime checks.',
         doc: doc('07-testing/VALIDATORS-AND-GUARDS.md'),
       },
       {
@@ -204,7 +207,9 @@ function runAiall(args) {
     const r = spawnSync(process.execPath, [bin, ...args, '--path', TARGET], { stdio: 'inherit' });
     return r.status === 0;
   }
-  const r = spawnSync('npx', ['--yes', '@ai.all/aiall@^1.0.0', ...args, '--path', TARGET], { stdio: 'inherit' });
+  const r = spawnSync('npx', ['--yes', '@ai.all/aiall@^1.0.0', ...args, '--path', TARGET], {
+    stdio: 'inherit',
+  });
   return r.status === 0;
 }
 
@@ -256,14 +261,72 @@ function ensureGitignore() {
   }
 }
 
-// Ensure docs/BRAND.md exists from templates
-function ensureBrandSpec() {
+// Prompt interactive brand questionnaire when run in a TTY
+async function promptQuestionnaire() {
+  if (!process.stdin.isTTY || process.argv.includes('--yes') || process.argv.includes('-y')) {
+    return null;
+  }
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const ask = (q, def) =>
+    new Promise((resolve) => {
+      rl.question(`  ${C.cyan}?${C.reset} ${q} ${C.dim}(${def})${C.reset}: `, (ans) => {
+        resolve(ans.trim() || def);
+      });
+    });
+
+  let defaultName = path.basename(TARGET);
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(TARGET, 'package.json'), 'utf8'));
+    if (pkg.name) defaultName = pkg.name;
+  } catch {}
+
+  console.log(
+    `\n${C.bold}DS7 Brand Intake Questionnaire${C.reset} ${C.dim}(press Enter to use defaults)${C.reset}:\n`,
+  );
+  const name = await ask('Brand or project name', defaultName);
+  const color = await ask('Primary brand color hex', '#e5a93c');
+  const port = await ask('Local dev server port', '3000');
+  const locales = await ask('Target languages (comma-separated)', 'es, en');
+  rl.close();
+  return { name, color, port, locales };
+}
+
+// Ensure docs/BRAND.md exists from templates, populated with questionnaire answers if available
+function ensureBrandSpec(answers) {
   const brandPath = path.join(TARGET, 'docs', 'BRAND.md');
   if (!fs.existsSync(brandPath)) {
     const src = path.join(PKG, 'templates', 'BRAND.md');
     fs.mkdirSync(path.dirname(brandPath), { recursive: true });
-    fs.copyFileSync(src, brandPath);
-    ok('docs/BRAND.md created (fill this file with brand tokens and fonts)');
+    let content = fs.readFileSync(src, 'utf8');
+    if (answers) {
+      if (answers.name) {
+        content = content.replace(
+          /- \*\*Project \/ Brand Name:\*\* .*/,
+          `- **Project / Brand Name:** ${answers.name}`,
+        );
+      }
+      if (answers.port) {
+        content = content.replace(
+          /- \*\*Dev Server Port:\*\* .*/,
+          `- **Dev Server Port:** \`${answers.port}\``,
+        );
+        content = content.replace(
+          /- \*\*Local Dev URL:\*\* .*/,
+          `- **Local Dev URL:** \`http://localhost:${answers.port}\``,
+        );
+      }
+      if (answers.color) {
+        content = content.replace(
+          /\| `--color-brand` \| `#[a-fA-F0-9]+` \|/,
+          `| \`--color-brand\` | \`${answers.color}\` |`,
+        );
+      }
+      if (answers.locales) {
+        content = content.replace(/- \*\*Languages:\*\* .*/, `- **Languages:** ${answers.locales}`);
+      }
+    }
+    fs.writeFileSync(brandPath, content);
+    ok('docs/BRAND.md created (brand specification & intake)');
   } else {
     skip('docs/BRAND.md');
   }
@@ -275,7 +338,7 @@ function ensureMakefile() {
   if (!fs.existsSync(mkPath)) {
     const src = path.join(PKG, 'templates', 'Makefile');
     fs.copyFileSync(src, mkPath);
-    ok('Makefile created (provides: make dev, make guard, make build)');
+    ok('Makefile created (provides: make dev, make guard, make check, make build)');
   } else {
     skip('Makefile');
   }
@@ -297,15 +360,25 @@ function ensurePackageScripts() {
       pkg.scripts['guard:strict'] = 'ds7 guard --strict';
       changed = true;
     }
+    if (!pkg.scripts.check) {
+      pkg.scripts.check = 'ds7 check';
+      changed = true;
+    }
+    if (!pkg.scripts['check:strict']) {
+      pkg.scripts['check:strict'] = 'ds7 check --strict';
+      changed = true;
+    }
     if (changed) {
       fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
-      ok('package.json scripts added: "guard", "guard:strict"');
+      ok('package.json scripts added: "guard", "guard:strict", "check", "check:strict"');
     }
   } catch {}
 }
 
-function cmdInit() {
+async function cmdInit() {
   console.log(`\n${C.bold}${C.cyan}DS7 v${version} — setup${C.reset}\n`);
+
+  const answers = await promptQuestionnaire();
 
   for (const [rel, dest] of standardFiles()) copyOne(rel, dest, false);
   writePackManifest(false);
@@ -325,15 +398,21 @@ function cmdInit() {
   legacyWarnings();
 
   ensureGitignore();
-  ensureBrandSpec();
+  ensureBrandSpec(answers);
   ensureMakefile();
   ensurePackageScripts();
 
   console.log(`\n${C.bold}${C.green}DS7 is installed.${C.reset}`);
-  console.log(`  1. Fill in ${C.cyan}docs/BRAND.md${C.reset} with colors, typography, and page requirements.`);
+  console.log(
+    `  1. Review ${C.cyan}docs/BRAND.md${C.reset} with colors, typography, and page requirements.`,
+  );
   console.log(`  2. Add project-specific guidelines to root ${C.cyan}ALL.md${C.reset}.`);
-  console.log(`  3. Run ${C.cyan}npx @ai.all/ds7 guard${C.reset} to verify modifier class names and atomic layers.`);
-  console.log(`  4. Run ${C.cyan}npx @ai.all/ds7 update${C.reset} to get new versions of the standard.\n`);
+  console.log(
+    `  3. Run ${C.cyan}npx @ai.all/ds7 check${C.reset} to verify quality gates (guard, tokens, i18n, hygiene).`,
+  );
+  console.log(
+    `  4. Run ${C.cyan}npx @ai.all/ds7 update${C.reset} to get new versions of the standard.\n`,
+  );
 }
 
 function cmdSync() {
@@ -377,13 +456,10 @@ function cmdUpdate() {
   info('The root ALL.md outside the aiall packs block was not changed.\n');
 }
 
-// Built-in zero-dependency class name & atomic design guard validator
-function cmdGuard() {
-  const strict = process.argv.includes('--strict');
-  const pathIdx = process.argv.indexOf('--path');
-  const targetDir = pathIdx > -1 ? path.resolve(process.argv[pathIdx + 1]) : TARGET;
-
-  const BAD = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-(?:active|big|small|large|orange|red|green|blue|dark|light|new|alt|v\d)$/;
+// Core modifier and atomic layer validator
+function runGuardChecks(targetDir) {
+  const BAD =
+    /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-(?:active|big|small|large|orange|red|green|blue|dark|light|new|alt|v\d)$/;
   const ALLOW = new Set([
     'is-active',
     'btn-active',
@@ -394,12 +470,21 @@ function cmdGuard() {
   ]);
 
   const found = new Map();
-  const searchDirs = ['app', 'src', 'components', 'pages'].map((d) => path.join(targetDir, d)).filter((d) => fs.existsSync(d));
+  const searchDirs = ['app', 'src', 'components', 'pages']
+    .map((d) => path.join(targetDir, d))
+    .filter((d) => fs.existsSync(d));
   if (!searchDirs.length) searchDirs.push(targetDir);
 
   const walk = (d) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
-      if (e.name === 'node_modules' || e.name === 'dist' || e.name === '.output' || e.name === '.nuxt' || e.name.startsWith('.')) continue;
+      if (
+        e.name === 'node_modules' ||
+        e.name === 'dist' ||
+        e.name === '.output' ||
+        e.name === '.nuxt' ||
+        e.name.startsWith('.')
+      )
+        continue;
       const p = path.join(d, e.name);
       if (e.isDirectory()) walk(p);
       else if (/\.(vue|html|jsx|tsx|svelte|astro|css|scss)$/.test(e.name)) {
@@ -422,7 +507,8 @@ function cmdGuard() {
 
   // Atomic-design layer checks (components/ui must not use upper-layer components)
   const layerIssues = [];
-  const UP = /(?<=[\s>])<(Home|Sections|Site|Shop|Calc|Direction|Hook|Info|Maint|Blog|Legal|Layout)[A-Z]\w*/g;
+  const UP =
+    /(?<=[\s>])<(Home|Sections|Site|Shop|Calc|Direction|Hook|Info|Maint|Blog|Legal|Layout)[A-Z]\w*/g;
   const findVues = (d) => {
     if (!fs.existsSync(d)) return [];
     return fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
@@ -436,7 +522,9 @@ function cmdGuard() {
     const text = fs.readFileSync(f, 'utf8');
     const matches = text.match(UP);
     if (matches) {
-      layerIssues.push(`ui → upper layer: ${path.relative(TARGET, f)} uses ${[...new Set(matches)].join(', ')}`);
+      layerIssues.push(
+        `ui → upper layer: ${path.relative(TARGET, f)} uses ${[...new Set(matches)].join(', ')}`,
+      );
     }
   }
 
@@ -448,9 +536,22 @@ function cmdGuard() {
     const styleMatch = text.match(/<style[^>]*>([\s\S]*?)<\/style>/);
     const lines = styleMatch ? styleMatch[1].split('\n').length : 0;
     if (lines > 40) {
-      layerIssues.push(`page with ${lines} style lines (move to a component/molecule): ${path.relative(TARGET, f)}`);
+      layerIssues.push(
+        `page with ${lines} style lines (move to a component/molecule): ${path.relative(TARGET, f)}`,
+      );
     }
   }
+
+  return { found, layerIssues };
+}
+
+// Built-in zero-dependency class name & atomic design guard validator
+function cmdGuard() {
+  const strict = process.argv.includes('--strict');
+  const pathIdx = process.argv.indexOf('--path');
+  const targetDir = pathIdx > -1 ? path.resolve(process.argv[pathIdx + 1]) : TARGET;
+
+  const { found, layerIssues } = runGuardChecks(targetDir);
 
   console.log(`\n${C.bold}DS7 Guard: Validating modifier classes and atomic layers…${C.reset}\n`);
 
@@ -464,9 +565,233 @@ function cmdGuard() {
   if (total === 0) {
     ok(`All checks passed. No modifier anti-patterns or layer violations found.\n`);
   } else {
-    console.log(`\n${C.yellow}Found ${found.size} baked-in modifier class(es), ${layerIssues.length} layer/style issue(s).${C.reset}`);
-    console.log(`Fix: use separate hyphen modifiers (.card.-top) and move page styles to components.\n`);
+    console.log(
+      `\n${C.yellow}Found ${found.size} baked-in modifier class(es), ${layerIssues.length} layer/style issue(s).${C.reset}`,
+    );
+    console.log(
+      `Fix: use separate hyphen modifiers (.card.-top) and move page styles to components.\n`,
+    );
     if (strict) process.exit(1);
+  }
+}
+
+// Validate token discipline: no raw hex or rgb/rgba colors in components/ui/
+function validateRawColors(targetDir) {
+  const issues = [];
+  const uiDir = path.join(targetDir, 'app', 'components', 'ui');
+  if (!fs.existsSync(uiDir)) return issues;
+
+  const findFiles = (d) => {
+    return fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
+      const p = path.join(d, e.name);
+      return e.isDirectory() ? findFiles(p) : /\.(vue|css|scss)$/.test(e.name) ? [p] : [];
+    });
+  };
+
+  const HEX_RGB =
+    /(?:color|background(?:-color)?|border(?:-[a-z]+)?(?:-color)?|fill|stroke|outline(?:-color)?)\s*:\s*([^;}\n]+)/gi;
+  const RAW_COLOR = /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b|rgba?\([^)]+\)/;
+
+  for (const f of findFiles(uiDir)) {
+    const text = fs.readFileSync(f, 'utf8');
+    let styleText = text;
+    if (f.endsWith('.vue')) {
+      const match = text.match(/<style[^>]*>([\s\S]*?)<\/style>/);
+      styleText = match ? match[1] : '';
+    }
+    if (!styleText) continue;
+
+    for (const m of styleText.matchAll(HEX_RGB)) {
+      const val = m[1].trim();
+      if (val.includes('var(')) continue;
+      const rawMatch = val.match(RAW_COLOR);
+      if (rawMatch) {
+        issues.push(
+          `raw color ${rawMatch[0]} in ${path.relative(TARGET, f)} (use var(--color-*) token)`,
+        );
+      }
+    }
+  }
+
+  return issues;
+}
+
+// Validate translation completeness across locales
+function validateI18n(targetDir) {
+  const issues = [];
+  const candidates = [
+    path.join(targetDir, 'i18n', 'locales'),
+    path.join(targetDir, 'locales'),
+    path.join(targetDir, 'app', 'locales'),
+  ];
+  const locDir = candidates.find((d) => fs.existsSync(d));
+  if (!locDir) return { localeCount: 0, issues };
+
+  const files = fs.readdirSync(locDir).filter((f) => /\.(json|ts|js)$/.test(f));
+  if (files.length <= 1) return { localeCount: files.length, issues };
+
+  const localeKeys = new Map();
+
+  for (const f of files) {
+    const loc = path.basename(f).replace(/\.[^.]+$/, '');
+    const p = path.join(locDir, f);
+    const content = fs.readFileSync(p, 'utf8');
+    const keys = new Set();
+
+    if (f.endsWith('.json')) {
+      try {
+        const obj = JSON.parse(content);
+        const extract = (o, prefix = '') => {
+          for (const [k, v] of Object.entries(o)) {
+            const full = prefix ? `${prefix}.${k}` : k;
+            if (v && typeof v === 'object' && !Array.isArray(v)) extract(v, full);
+            else {
+              keys.add(full);
+              if (typeof v === 'string' && !v.trim()) {
+                issues.push(`empty string in ${loc}: ${full}`);
+              }
+            }
+          }
+        };
+        extract(obj);
+      } catch (err) {
+        issues.push(`invalid JSON in ${path.relative(TARGET, p)}: ${err.message}`);
+      }
+    } else {
+      for (const m of content.matchAll(/['"]?([a-zA-Z0-9_.-]+)['"]?\s*:\s*(?:['"`]|\[|\{)/g)) {
+        if (!['export', 'default', 'import', 'const', 'let', 'var'].includes(m[1])) {
+          keys.add(m[1]);
+        }
+      }
+    }
+    localeKeys.set(loc, keys);
+  }
+
+  const locales = [...localeKeys.keys()];
+  for (let i = 0; i < locales.length; i++) {
+    for (let j = 0; j < locales.length; j++) {
+      if (i === j) continue;
+      const [l1, l2] = [locales[i], locales[j]];
+      const k1 = localeKeys.get(l1);
+      const k2 = localeKeys.get(l2);
+      const missing = [];
+      for (const k of k1) {
+        if (!k2.has(k)) missing.push(k);
+      }
+      if (missing.length) {
+        issues.push(
+          `missing in ${l2} (present in ${l1}): ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? ` (+${missing.length - 5} more)` : ''}`,
+        );
+      }
+    }
+  }
+
+  return { localeCount: locales.length, issues: [...new Set(issues)] };
+}
+
+// Validate repo hygiene: brand specification present, zero temp artifacts
+function validateRepoHygiene(targetDir) {
+  const issues = [];
+
+  const brandPath = path.join(targetDir, 'docs', 'BRAND.md');
+  if (!fs.existsSync(brandPath)) {
+    issues.push('docs/BRAND.md is missing. Run: npx @ai.all/ds7 init');
+  }
+
+  const checkDirs = ['app', 'public', 'docs']
+    .map((d) => path.join(targetDir, d))
+    .filter((d) => fs.existsSync(d));
+  const FORBIDDEN_EXT = /\.(tmp|tmp-pv|psd|raw|cr2|nef)$/i;
+
+  const walk = (d) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name === '.git' || e.name.startsWith('.nuxt')) continue;
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else {
+        if (
+          e.name === '.DS_Store' ||
+          FORBIDDEN_EXT.test(e.name) ||
+          /-(?:tmp|scratch)\./.test(e.name)
+        ) {
+          issues.push(`temporary / raw artifact in tree: ${path.relative(TARGET, p)}`);
+        }
+      }
+    }
+  };
+
+  for (const d of checkDirs) walk(d);
+
+  return issues;
+}
+
+// Comprehensive health check running all quality gates
+function cmdCheck() {
+  const strict = process.argv.includes('--strict');
+  const pathIdx = process.argv.indexOf('--path');
+  const targetDir = pathIdx > -1 ? path.resolve(process.argv[pathIdx + 1]) : TARGET;
+
+  console.log(`\n${C.bold}DS7 Health Check: Running all quality gates…${C.reset}\n`);
+
+  // Gate 1: Modifier & Layer Guard
+  const { found: guardFound, layerIssues } = runGuardChecks(targetDir);
+  const guardCount = guardFound.size + layerIssues.length;
+  if (guardCount === 0) {
+    ok('Gate 1 (Modifiers & Layers): Clean. No modifier anti-patterns or layer violations.');
+  } else {
+    err(
+      `Gate 1 (Modifiers & Layers): Found ${guardFound.size} modifier class(es), ${layerIssues.length} layer issue(s).`,
+    );
+    for (const issue of layerIssues) console.log(`    ${C.dim}${issue}${C.reset}`);
+    for (const [cls, files] of [...guardFound].sort().slice(0, 5)) {
+      console.log(`    ${C.dim}${cls} in ${[...files].slice(0, 2).join(', ')}${C.reset}`);
+    }
+  }
+
+  // Gate 2: Raw Colors in UI Atoms
+  const rawColors = validateRawColors(targetDir);
+  if (rawColors.length === 0) {
+    ok('Gate 2 (Token Discipline): Clean. All UI component colors use design tokens.');
+  } else {
+    err(
+      `Gate 2 (Token Discipline): Found ${rawColors.length} raw color literal(s) in components/ui/.`,
+    );
+    for (const issue of rawColors.slice(0, 5)) console.log(`    ${C.dim}${issue}${C.reset}`);
+  }
+
+  // Gate 3: i18n Locales Parity
+  const { localeCount, issues: i18nIssues } = validateI18n(targetDir);
+  if (i18nIssues.length === 0) {
+    ok(
+      `Gate 3 (Internationalisation): Clean. ${localeCount ? `${localeCount} locales in parity.` : 'No locale files found (skipped).'}`,
+    );
+  } else {
+    err(`Gate 3 (Internationalisation): Found ${i18nIssues.length} translation parity issue(s).`);
+    for (const issue of i18nIssues.slice(0, 5)) console.log(`    ${C.dim}${issue}${C.reset}`);
+  }
+
+  // Gate 4: Repository Hygiene & Brand Spec
+  const hygieneIssues = validateRepoHygiene(targetDir);
+  if (hygieneIssues.length === 0) {
+    ok('Gate 4 (Repository Hygiene): Clean. Brand spec present, no stray artifacts.');
+  } else {
+    err(`Gate 4 (Repository Hygiene): Found ${hygieneIssues.length} hygiene issue(s).`);
+    for (const issue of hygieneIssues.slice(0, 5)) console.log(`    ${C.dim}${issue}${C.reset}`);
+  }
+
+  const totalErrors = guardCount + rawColors.length + i18nIssues.length + hygieneIssues.length;
+  if (totalErrors === 0) {
+    console.log(`\n${C.bold}${C.green}✓ All DS7 quality gates passed!${C.reset}\n`);
+  } else {
+    console.log(
+      `\n${C.bold}${C.yellow}Total: ${totalErrors} issue(s) detected across quality gates.${C.reset}`,
+    );
+    if (strict) {
+      console.log(`${C.red}Strict mode active: exiting with code 1.${C.reset}\n`);
+      process.exit(1);
+    } else {
+      console.log(`Fix the issues above before submitting pull requests or publishing.\n`);
+    }
   }
 }
 
@@ -496,10 +821,11 @@ async function cmdImages() {
   const QUALITY = 72;
   const VARIANT = /-(\d{3,4})\.webp$/;
 
-  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
-    const p = path.join(d, e.name);
-    return e.isDirectory() ? walk(p) : [p];
-  });
+  const walk = (d) =>
+    fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
+      const p = path.join(d, e.name);
+      return e.isDirectory() ? walk(p) : [p];
+    });
 
   const sources = walk(imgRoot).filter((f) => /\.(webp|jpe?g|png)$/i.test(f) && !VARIANT.test(f));
   const manifest = {};
@@ -524,7 +850,10 @@ async function cmdImages() {
         stale.push(out);
         continue;
       }
-      await sharp(file).resize({ width: w, withoutEnlargement: true }).webp({ quality: QUALITY }).toFile(out);
+      await sharp(file)
+        .resize({ width: w, withoutEnlargement: true })
+        .webp({ quality: QUALITY })
+        .toFile(out);
       built++;
     }
     if (made.length) manifest[url] = made;
@@ -552,10 +881,11 @@ function cmdHelp() {
   console.log(`
 DS7 ${version}
 
-  npx @ai.all/ds7           install the standard and enable the ds7 pack (init)
+  npx @ai.all/ds7           install standard, brand intake and quality scripts (init)
   npx @ai.all/ds7 sync      sync agent entrypoints (AI-ALL sync)
   npx @ai.all/ds7 update    update ds7/ to this version and refresh the pack
   npx @ai.all/ds7 guard     check modifier class names and atomic layer rules (--strict)
+  npx @ai.all/ds7 check     run all quality gates: guard, tokens, i18n, hygiene (--strict)
   npx @ai.all/ds7 images    generate responsive WebP image variants (--check)
   npx @ai.all/ds7 --version print the version
 `);
@@ -567,6 +897,7 @@ else if (cmd === '--help' || cmd === '-h' || cmd === 'help') cmdHelp();
 else if (cmd === 'sync') cmdSync();
 else if (cmd === 'update') cmdUpdate();
 else if (cmd === 'guard') cmdGuard();
+else if (cmd === 'check') cmdCheck();
 else if (cmd === 'images') cmdImages();
 else if (!cmd || cmd === 'init') cmdInit();
 else {

@@ -11,7 +11,9 @@ The DS7 CLI includes zero-footprint validators that run directly from the packag
 | Command | Target | Dependencies | Purpose |
 |---|---|---|---|
 | `npx @ai.all/ds7 guard` | `app/`, `src/`, templates | 0 (Built-in Node.js) | Enforces modifier naming (`.-modifier`), forbids baked-in modifier classes (`*-big`, `*-active`), prevents layer violations, limits page-level style bloat. |
-| `npx @ai.all/ds7 guard --strict` | Templates & styles | 0 (Built-in Node.js) | Exits with code 1 on any violation. Mandatory pre-commit and CI gate. |
+| `npx @ai.all/ds7 guard --strict` | Templates & styles | 0 (Built-in Node.js) | Exits with code 1 on any violation. |
+| `npx @ai.all/ds7 check` | Entire project | 0 (Built-in Node.js) | Comprehensive health check: runs modifier guard, raw color detection in UI atoms, i18n parity check, and repo hygiene. |
+| `npx @ai.all/ds7 check --strict` | Entire project | 0 (Built-in Node.js) | Exits with code 1 on any issue. Recommended for `make check`, pre-commit hooks, and CI workflows. |
 | `npx @ai.all/ds7 images` | `public/images/` | `sharp` (optional) | Generates responsive WebP variants (400, 800, 1200 px) and creates `image-variants.json`. |
 | `npx @ai.all/ds7 images --check` | `public/images/` | `sharp` (optional) | Fails if responsive variants are missing or older than sources. |
 
@@ -42,6 +44,18 @@ The guard validator (`ds7 guard`) protects the codebase against three frequent a
 ### 2.3 Page-Level CSS Line Budget
 - Pages in `pages/` (except dev sandbox pages `/ui`, `/ds`) must not accumulate massive inline `<style>` blocks.
 - **Limit:** Maximum 40 lines of scoped CSS per page. Styles belonging to reusable sections or components must live in their respective component files or in the design system stylesheet.
+
+### 2.4 Token Discipline: Raw Color Detection
+- **Rule:** UI components inside `components/ui/` must consume semantic design tokens (`var(--color-*)`) defined in `theme.css`.
+- `ds7 check` flags any literal `#hex` or `rgb(...)`/`rgba(...)` color declarations within `<style>` blocks of UI atoms, ensuring brand-wide recoloring remains trivial.
+
+### 2.5 Internationalisation Parity
+- **Rule:** Every registered locale in `i18n/locales/` must maintain identical translation keys. Missing keys result in broken production copy or untranslated fallback text.
+- `ds7 check` parses JSON and TS locale files, performing automated cross-comparison of translation trees and flagging missing keys or empty strings across all language targets.
+
+### 2.6 Repository Hygiene & Zero Repo Bloat
+- **Rule:** Raw development intake media, PSD/AI source files, OS artifacts (`.DS_Store`), and temporary test previews must never be tracked in the Git tree.
+- `ds7 check` verifies that `docs/BRAND.md` is present and flags any forbidden extensions (`.tmp`, `.psd`, `.raw`) or stray files across the project.
 
 ---
 

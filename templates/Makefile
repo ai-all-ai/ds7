@@ -19,7 +19,7 @@ guard:
 	npx @ai.all/ds7 guard
 
 check:
-	npx @ai.all/ds7 guard --strict
+	npx @ai.all/ds7 check --strict
 
 images:
 	npx @ai.all/ds7 images
