@@ -7,17 +7,17 @@ How to set up a new web project with DS7 so developers and AI agents can build c
 ## 1. The 4-Step Onboarding Flow
 
 ```text
-Step 1: Install standard
-  └─► npx @ai.all/ds7 init (answers 3-4 interactive questions or accepts defaults)
+Step 1: Install standard & Brand Intake
+  └─► npx @ai.all/ds7 init (answers 4 interactive questions or accepts defaults)
 
-Step 2: Fill Brand Specification
+Step 2: Review Brand Specification
   └─► docs/BRAND.md (the single source of truth for visual identity & scope)
 
 Step 3: Verify Foundations in Brandbook
-  └─► Start dev server, open /ui, verify tokens & base buttons
+  └─► Start dev server (make dev), open /ui, verify tokens & base buttons
 
-Step 4: Build Components-First
-  └─► Add atoms/molecules to /ui with IDs (CARD-01, BTN-01), run "ds7 guard"
+Step 4: Build Components-First & Quality Gate
+  └─► Add atoms/molecules to /ui with IDs (CARD-01, BTN-01), run "make check" (ds7 check)
 ```
 
 ---

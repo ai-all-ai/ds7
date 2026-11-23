@@ -3,7 +3,7 @@
 > **How it fits with AI-ALL.** [AI-ALL](https://github.com/ai-all-ai/aiall) (`@ai.all/aiall`) creates the agent entrypoints and the routing file, and keeps them in sync. This document is delivered to agents as the `ds7` pack of AI-ALL. AI-ALL works without DS7; for web projects, install both.
 
 
-Version 2.1.0. This document is the technical baseline. Rules for agents are in `ALL.md`; this file describes the stack, the layout and the quality gates.
+Version 2.3.0. This document is the technical baseline. Rules for agents are in `ALL.md`; this file describes the stack, the layout and the quality gates.
 
 ---
 
@@ -42,6 +42,7 @@ project-root/
 │   └── locales/               # one file per language, same keys
 ├── public/                    # static assets: images, fonts, favicon
 ├── docs/                      # project documentation
+│   ├── BRAND.md               # brand specification & intake (created on init)
 │   ├── ARCHITECTURE.md        # layer map and browser storage keys
 │   ├── DECISIONS.md           # dated decisions and reasons
 │   └── METRICS.md             # dated measurements, with machine and build

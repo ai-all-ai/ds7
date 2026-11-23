@@ -51,7 +51,7 @@ Routes, language switcher, `hreflang` and sitemap entries for the new language a
 
 - Grouped by component or section: `businessScreens.night.title`.
 - Named by meaning, never by appearance (`hero.title`, not `big.red.title`).
-- The same key set in every locale. The parity check fails the build when a key is missing.
+- The same key set in every locale. Automated parity verification: run `npx @ai.all/ds7 check` (or `make check`) to cross-validate all locale files and ensure zero missing keys or empty strings. Missing translations fail in `--strict` mode.
 
 ---
 

@@ -8,7 +8,7 @@
 > Project-specific rules live in the root `ALL.md`, below the AI-ALL packs block (`<!-- aiall:begin packs -->` to `<!-- aiall:end packs -->`). AI-ALL keeps that text on sync. Where project rules and this file disagree, the project rules win for that project and the disagreement is recorded in `docs/DECISIONS.md`.
 > This file is the `ds7` pack of AI-ALL. The root `ALL.md` lists it in the packs block. Every entrypoint (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/*`, `.windsurf/rules/*`, `.github/copilot-instructions.md`) points to the root `ALL.md`. Sync them with `npx @ai.all/aiall sync`.
 
-**Version:** 2.1.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, Tailwind CSS v4, `@nuxtjs/i18n`, static generation.
+**Version:** 2.3.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, Tailwind CSS v4, `@nuxtjs/i18n`, static generation.
 
 ---
 
@@ -204,7 +204,7 @@ Full rules: `07-testing/TESTING-STRATEGY.md`.
 
 ## 14. Documentation
 
-The project keeps these files, and agents read them when a task needs them: `docs/ARCHITECTURE.md` (layer map), `docs/DECISIONS.md` (dated decisions), `docs/METRICS.md` (measured values). The standard does not create them.
+The project keeps these files, and agents read them when a task needs them: `docs/BRAND.md` (brand specification and foundations intake, created during `init`), `docs/ARCHITECTURE.md` (layer map), `docs/DECISIONS.md` (dated decisions), `docs/METRICS.md` (measured values).
 
 - Each rule has one home. Do not repeat a rule in several files; link to the home.
 - Docs describe the current state. Decisions and their reasons go to `docs/DECISIONS.md` with a date.
@@ -238,4 +238,4 @@ Full strategy: `08-token-optimization/TOKEN-STRATEGY.md`.
 | `SLD-01` | Card slider with scroll-snap | same |
 | `HOOK-01` | Overlap hook under the cover | same |
 
-**Before you finish any task, check:** no hard-coded UI text · no raw colours · no copied component · every image sized and routed through the image component · `npx @ai.all/ds7 guard` clean · i18n keys in all locales · axe clean at 390 / 820 / 1440 · CHANGELOG line added · no junk left in the repo · security headers and the 404 page unchanged or documented.
+**Before you finish any task, check:** no hard-coded UI text · no raw colours · no copied component · every image sized and routed through the image component · `npx @ai.all/ds7 check` clean · i18n keys in all locales · axe clean at 390 / 820 / 1440 · CHANGELOG line added · no junk left in the repo · security headers and the 404 page unchanged or documented.
