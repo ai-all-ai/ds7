@@ -170,8 +170,10 @@ export const editPage = (dir, route, fn) =>
 let template;
 function installedTemplate() {
   if (template) return template;
-  template = fs.mkdtempSync(path.join(os.tmpdir(), 'ds7-installed-'));
-  const packDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ds7-tarball-'));
+  // Real paths: on macOS the temp folder (/var/folders) is a link to /private/var, and npm resolves tarball paths through it.
+  const base = fs.realpathSync(os.tmpdir());
+  template = fs.mkdtempSync(path.join(base, 'ds7-installed-'));
+  const packDir = fs.mkdtempSync(path.join(base, 'ds7-tarball-'));
   process.on('exit', () => {
     fs.rmSync(template, { recursive: true, force: true });
     fs.rmSync(packDir, { recursive: true, force: true });
@@ -185,13 +187,14 @@ function installedTemplate() {
   const [{ filename }] = JSON.parse(
     run('npm', ['pack', '--json', '--pack-destination', packDir], root),
   );
+  const tarball = path.join(packDir, filename);
+  if (!fs.existsSync(tarball))
+    throw new Error(
+      `npm ${run('npm', ['--version'], root).trim()} reported ${filename}, but ${packDir} holds: ${fs.readdirSync(packDir).join(', ') || 'nothing'}`,
+    );
   const extra = process.env.AIALL_TARBALL ? [process.env.AIALL_TARBALL] : [];
   run('npm', ['init', '-y'], template);
-  run(
-    'npm',
-    ['install', '--no-audit', '--no-fund', path.join(packDir, filename), ...extra],
-    template,
-  );
+  run('npm', ['install', '--no-audit', '--no-fund', tarball, ...extra], template);
   return template;
 }
 // A copy of the project with the packed DS7 and AI-ALL installed, before `init`.
