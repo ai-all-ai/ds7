@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 // Documentation consistency: what the project documents must exist and agree with the repository. `ds7 docs`.
 //  - every `npm run X` names a script of package.json
-//  - every backticked project path and every relative markdown link points at a file that exists (write a path that does not exist yet as `path` (new): it is skipped)
+//  - every backticked project path and every relative markdown link points at a file that exists (write a path that does not exist yet as `path` (new): it is skipped; a path git ignores is local only and skipped too)
 //  - every "file.md section 5" reference names a numbered heading ("## 5. Title") that exists in that file
 //  - every skill folder has a SKILL.md whose name matches the folder and which is registered in ALL.md
 //  - every document of docs/ is named by ALL.md or by another document (an unreferenced document is an orphan)
 // History files (CHANGELOG), the files AI-ALL manages (.ai/) and the vendored DS7 standard (ds7/, except ds7/local/) are not scanned; the standard's ALL.md counts as naming the documents it lists.
 import fs from 'node:fs';
 import path from 'node:path';
-import { listFiles, read, ROOT } from '../lib/project.mjs';
+import { isIgnored, listFiles, read, ROOT } from '../lib/project.mjs';
 import { loadConfig } from '../lib/config.mjs';
 import { conclude } from '../lib/report.mjs';
 
@@ -26,6 +26,8 @@ const scripts = pkg.scripts || {};
 const problems = [];
 const bad = (f, line, msg) => problems.push({ where: `${f}:${line}`, rule: 'docs', detail: msg });
 const exists = (rel) => fs.existsSync(path.join(ROOT, rel));
+// a path git ignores is local only (it exists on one machine, never in CI); docs.skipIgnored: false checks it anyway
+const missing = (rel) => !exists(rel) && !(cfg.docs.skipIgnored && isIgnored(rel));
 
 const roots = new RegExp(`^(${cfg.docs.roots.map((r) => r.replace(/[.]/g, '\\.')).join('|')})/`);
 const rootFiles =
@@ -60,11 +62,11 @@ for (const f of scan) {
         const p = raw.replace(/[:#].*$/, '').replace(/[.,;)]+$/, '');
         if (!(roots.test(p) || rootFiles.test(p)) || /[*<>{}$]|\.\.\./.test(p) || localOnly.test(p))
           continue;
-        if (!exists(p.replace(/\/$/, ''))) bad(f, n, `\`${raw}\` does not exist`);
+        if (missing(p.replace(/\/$/, ''))) bad(f, n, `\`${raw}\` does not exist`);
       }
       for (const [, target] of text.matchAll(/\]\(([^)]+)\)/g)) {
         if (/^(https?:|mailto:|#)/.test(target)) continue;
-        if (!exists(path.posix.join(path.posix.dirname(f), target.replace(/#.*$/, ''))))
+        if (missing(path.posix.join(path.posix.dirname(f), target.replace(/#.*$/, ''))))
           bad(f, n, `link (${target}) points at no file`);
       }
       for (const [, doc, num] of text.matchAll(

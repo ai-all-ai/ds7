@@ -1,34 +1,42 @@
 #!/usr/bin/env node
 // Markup, link and asset check over the generated site. No dependencies: runs anywhere.
-// Usage: ds7 audit html [--out .output/public] [--routes /,/tienda/] [--quiet]
+// Usage: ds7 audit html [--out .output/public] [--routes /,/tienda/] [--base /repo/] [--quiet]
+// A site built under a base path (GitHub Pages: NUXT_APP_BASE_URL=/repo/) is checked with --base or that variable: every root path
+// must start with the base, a path that does not would break once the site is served from the sub-folder (rule outside-base).
 import fs from 'node:fs';
 import path from 'node:path';
 import { conclude, showByRule } from '../lib/report.mjs';
+import { loadConfig, internalRoutes } from '../lib/config.mjs';
+import { arg, buildDir, walk } from '../lib/cli.mjs';
 
-const arg = (k, d) => {
-  const i = process.argv.indexOf(`--${k}`);
-  return i > -1 ? process.argv[i + 1] : d;
-};
-const OUT = path.resolve(arg('out', '.output/public'));
+const OUT = buildDir();
 const ONLY = arg('routes', '');
-if (!fs.existsSync(OUT)) {
-  console.error(`Folder ${OUT} is missing. Run first: npm run generate`);
-  process.exit(1);
-}
 
-const walk = (d) =>
-  fs
-    .readdirSync(d, { withFileTypes: true })
-    .flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
 const pages = ONLY
   ? ONLY.split(',')
       .map((r) => path.join(OUT, r, 'index.html'))
       .filter((f) => fs.existsSync(f))
   : walk(OUT).filter((f) => f.endsWith('.html') && !f.includes(`${path.sep}_nuxt${path.sep}`));
 
+const BASE = (() => {
+  const b = arg('base', process.env.NUXT_APP_BASE_URL || '/');
+  return `/${b.replace(/^\/+|\/+$/g, '')}/`.replace(/^\/\/$/, '/');
+})();
+let current = '';
 const assetExists = (url) => {
-  const clean = url.split('?')[0].split('#')[0];
-  if (!clean.startsWith('/')) return true;
+  let clean = url.split('?')[0].split('#')[0];
+  if (!clean.startsWith('/') || clean.startsWith('//')) return true;
+  if (BASE !== '/') {
+    if (!clean.startsWith(BASE)) {
+      add(
+        current,
+        'outside-base',
+        `${clean} does not start with ${BASE} (wrap the path in asset())`,
+      );
+      return true;
+    }
+    clean = clean.slice(BASE.length - 1);
+  }
   const f = path.join(OUT, decodeURIComponent(clean));
   return fs.existsSync(f) || fs.existsSync(path.join(f, 'index.html'));
 };
@@ -46,7 +54,8 @@ const text = (html, open, close) => {
 
 const issues = [];
 const add = (page, rule, detail) => issues.push({ where: page, rule, detail });
-const SKIP = /(^|\/)(owner|ds|ui)\/?$/;
+// developer pages (seo.internal) are not public pages
+const skip = internalRoutes(loadConfig());
 
 for (const file of pages) {
   const base = path.basename(file);
@@ -57,7 +66,8 @@ for (const file of pages) {
       ? dir
       : dir + '/'
     : path.relative(OUT, file).replace(/\\/g, '/');
-  if (SKIP.test(r)) continue;
+  if (skip(r)) continue;
+  current = r;
   const html = fs.readFileSync(file, 'utf8');
   // 200.html / 404.html are empty SPA fallbacks produced by the generator: only their assets matter
   const shell = !isPage;

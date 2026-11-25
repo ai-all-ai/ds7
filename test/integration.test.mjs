@@ -5,7 +5,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { installed, cli, has, read, put, edit, version } from './helpers.mjs';
+import { spawnSync } from 'node:child_process';
+import { installed, cli, has, read, put, edit, version, root } from './helpers.mjs';
 
 const init = (t) => {
   const p = installed(t);
@@ -122,4 +123,18 @@ test('docs, graph and doctor pass on a fresh install', (t) => {
     const r = cli(p.dir, args, p.ds7);
     assert.equal(r.status, 0, `${args.join(' ')}: ${r.out}`);
   }
+});
+
+test('the pack and install helper works inside npm publish --dry-run', () => {
+  // prepublishOnly runs the tests with npm_config_dry_run=true; the helper must still produce a real install
+  const r = spawnSync(
+    process.execPath,
+    ['--test', '--test-name-pattern=pack manifest', 'test/integration.test.mjs'],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      env: { ...process.env, npm_config_dry_run: 'true' },
+    },
+  );
+  assert.equal(r.status, 0, r.stdout + r.stderr);
 });

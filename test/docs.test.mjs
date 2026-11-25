@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { project, cli, put, edit } from './helpers.mjs';
 
 const docs = (dir) => cli(dir, ['docs']);
@@ -33,6 +34,24 @@ test('docs reports a project path that does not exist', (t) => {
   const dir = project(t);
   note(dir, '# Notes\n\nSee `app/ghost.ts`.\n');
   assert.match(docs(dir).out, /`app\/ghost\.ts` does not exist/);
+});
+
+test('docs skips a path that git ignores, because it exists only on one machine', (t) => {
+  const dir = project(t);
+  spawnSync('git', ['init', '-q'], { cwd: dir });
+  put(dir, '.gitignore', 'tools/local/\n');
+  note(dir, '# Notes\n\nLocal: `tools/local/intake.mjs`.\n');
+  const r = docs(dir);
+  assert.equal(r.status, 0, r.out);
+});
+
+test('docs checks a git-ignored path when docs.skipIgnored is false', (t) => {
+  const dir = project(t);
+  spawnSync('git', ['init', '-q'], { cwd: dir });
+  put(dir, '.gitignore', 'tools/local/\n');
+  put(dir, 'ds7.config.json', JSON.stringify({ docs: { skipIgnored: false } }));
+  note(dir, '# Notes\n\nLocal: `tools/local/intake.mjs`.\n');
+  assert.match(docs(dir).out, /tools\/local\/intake\.mjs` does not exist/);
 });
 
 test('docs skips a path marked (new) because it is planned', (t) => {

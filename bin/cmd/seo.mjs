@@ -11,21 +11,14 @@
 //   ds7 audit seo [--out .output/public] [--site https://example.com]
 import fs from 'node:fs';
 import path from 'node:path';
-import { loadConfig, siteUrl } from '../lib/config.mjs';
+import { internalRoutes, loadConfig, siteUrl } from '../lib/config.mjs';
 import { conclude, showByRule } from '../lib/report.mjs';
 import { imageSize } from '../lib/image-size.mjs';
+import { arg, buildDir, walk } from '../lib/cli.mjs';
 
 const cfg = loadConfig();
 
-const arg = (k, d) => {
-  const i = process.argv.indexOf(`--${k}`);
-  return i > -1 ? process.argv[i + 1] : d;
-};
-const OUT = path.resolve(arg('out', '.output/public'));
-if (!fs.existsSync(OUT)) {
-  console.error(`Folder ${OUT} is missing. Run first: npm run generate`);
-  process.exit(1);
-}
+const OUT = buildDir();
 const SITE = siteUrl(cfg, arg('site'));
 if (!SITE) {
   console.error(
@@ -34,16 +27,7 @@ if (!SITE) {
   process.exit(1);
 }
 
-const walk = (d) =>
-  fs
-    .readdirSync(d, { withFileTypes: true })
-    .flatMap((e) =>
-      e.isDirectory()
-        ? e.name === '_nuxt'
-          ? []
-          : walk(path.join(d, e.name))
-        : [path.join(d, e.name)],
-    );
+const walkBuild = (d) => walk(d, ['_nuxt']);
 const read = (f) => fs.readFileSync(f, 'utf8');
 const decode = (s) =>
   s
@@ -91,7 +75,7 @@ const problems = [],
 const bad = (page, rule, detail) => problems.push({ where: page, rule, detail });
 
 // pages of the build
-const pages = walk(OUT)
+const pages = walkBuild(OUT)
   .filter((f) => path.basename(f) === 'index.html')
   .map((f) => {
     const rel = '/' + path.relative(OUT, path.dirname(f)).split(path.sep).join('/');
@@ -101,7 +85,8 @@ const pages = walk(OUT)
     return { route, html, noindex: /noindex/i.test(robots) };
   });
 const internal = cfg.seo.internal.map(noSlash);
-const indexable = pages.filter((p) => !p.noindex && !internal.includes(p.route));
+const isInternal = internalRoutes(cfg);
+const indexable = pages.filter((p) => !p.noindex && !isInternal(p.route));
 
 // targets
 const targets =
@@ -318,10 +303,13 @@ else {
     else if (t > Date.now() + 864e5)
       bad('/sitemap.xml', 'sitemap-lastmod', `${m} is in the future`);
   }
-  if (!mods.length && locs.length)
-    notes.push(
-      'sitemap.xml has no <lastmod>; add the date each page really changed so crawlers can skip unchanged pages',
-    );
+  // seo.lastmod: "warn" (default) notes a sitemap without dates, "require" fails on it, "off" stays silent (a project that has no real edit dates)
+  if (!mods.length && locs.length) {
+    const why =
+      'sitemap.xml has no <lastmod>; add the date each page really changed so crawlers can skip unchanged pages';
+    if (cfg.seo.lastmod === 'require') bad('/sitemap.xml', 'sitemap-lastmod', why);
+    else if (cfg.seo.lastmod !== 'off') notes.push(`${why} (or set seo.lastmod to "off")`);
+  }
   const want = new Set(indexable.map((p) => urlOf(p.route)));
   for (const l of locs)
     if (!want.has(l))

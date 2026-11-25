@@ -1,7 +1,7 @@
 // `ds7 init` on a project that has only a package.json. One test per thing init creates.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bare, project, cli, has, read, edit } from './helpers.mjs';
+import { bare, project, cli, has, read, edit, put } from './helpers.mjs';
 
 test('init creates the project documents ARCHITECTURE, DECISIONS and METRICS', (t) => {
   const dir = project(t);
@@ -15,9 +15,16 @@ test('init creates ds7.config.json, the switch of the layout gate', (t) => {
   assert.ok('layout' in JSON.parse(read(dir, 'ds7.config.json')));
 });
 
-test('init creates the three starter skills', (t) => {
+test('init creates the starter skills', (t) => {
   const dir = project(t);
-  for (const s of ['project-graph', 'add-language', 'seo-page']) {
+  for (const s of [
+    'project-graph',
+    'add-language',
+    'seo-page',
+    'project-rules',
+    'code-audit',
+    'search-quality',
+  ]) {
     const text = read(dir, `.agents/skills/${s}/SKILL.md`);
     assert.match(text, new RegExp(`^---\\nname: ${s}\\n`), `${s} frontmatter names the folder`);
   }
@@ -25,7 +32,14 @@ test('init creates the three starter skills', (t) => {
 
 test('init registers the starter skills in the root ALL.md', (t) => {
   const all = read(project(t), 'ALL.md');
-  for (const s of ['project-graph', 'add-language', 'seo-page'])
+  for (const s of [
+    'project-graph',
+    'add-language',
+    'seo-page',
+    'project-rules',
+    'code-audit',
+    'search-quality',
+  ])
     assert.ok(all.includes(`.agents/skills/${s}/SKILL.md`), `${s} is listed`);
   assert.ok(!all.includes('(Add a trigger)'), 'the placeholder row is replaced');
 });
@@ -75,4 +89,22 @@ test('init a second time keeps edited project files and lists each skill once', 
   assert.ok(read(dir, 'docs/ARCHITECTURE.md').includes('MY CONVENTION'));
   assert.ok(read(dir, 'docs/DECISIONS.md').includes('MY DECISION'));
   assert.equal(read(dir, 'ALL.md').split('.agents/skills/seo-page/SKILL.md').length - 1, 1);
+});
+
+test('init runs from a bare --yes flag, as `npx ds7 --yes` does', (t) => {
+  const dir = bare(t);
+  const r = cli(dir, ['--yes']);
+  assert.equal(r.status, 0, r.out);
+  assert.ok(has(dir, 'ds7.config.json'));
+});
+
+test('init adds no ds7 workflow when the project CI already runs the checks', (t) => {
+  const dir = bare(t);
+  put(
+    dir,
+    '.github/workflows/site.yml',
+    'jobs:\n  check:\n    steps:\n      - run: npm run check:strict\n',
+  );
+  assert.equal(cli(dir).status, 0);
+  assert.ok(!has(dir, '.github/workflows/ds7.yml'));
 });

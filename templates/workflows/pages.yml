@@ -1,0 +1,51 @@
+# Publishes the static build to GitHub Pages on every push to main (written by `ds7 pages`).
+# Settings → Pages → Source: "GitHub Actions". On github.io the site lives under /<repository>/: the build gets that base
+# through NUXT_APP_BASE_URL, so every path must go through asset() (app/utils/asset.ts) and `ds7 audit html --base` proves it.
+# While the Pages copy is a preview and not the real site, it is closed to search engines; delete that step when it is the site.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  pages:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - id: pages
+        uses: actions/configure-pages@v5
+      # base_path is /<repository> on github.io and empty on a custom domain
+      - name: Build for Pages
+        run: npm run generate
+        env:
+          NUXT_APP_BASE_URL: ${{ steps.pages.outputs.base_path }}/
+      - name: No root path outside the base
+        run: npx ds7 audit html --base "${{ steps.pages.outputs.base_path }}/"
+      - name: Close the preview to search engines
+        run: |
+          find .output/public -name '*.html' -exec sed -i 's#<head>#<head><meta name="robots" content="noindex, nofollow">#' {} +
+          printf 'User-agent: *\nDisallow: /\n' > .output/public/robots.txt
+          find .output/public \( -name '*.br' -o -name '*.gz' \) -delete
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: .output/public
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -178,8 +178,13 @@ function installedTemplate() {
     fs.rmSync(template, { recursive: true, force: true });
     fs.rmSync(packDir, { recursive: true, force: true });
   });
+  // `npm publish --dry-run` runs prepublishOnly (the tests) with npm_config_dry_run=true; a nested npm would inherit it,
+  // report a tarball and write nothing. The packing here is real work, so that setting is removed.
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([k]) => k.toLowerCase() !== 'npm_config_dry_run'),
+  );
   const run = (cmd, args, cwd) => {
-    const r = spawnSync(cmd, args, { cwd, encoding: 'utf8' });
+    const r = spawnSync(cmd, args, { cwd, encoding: 'utf8', env });
     if (r.status !== 0)
       throw new Error(`${cmd} ${args.join(' ')} failed:\n${r.stdout}\n${r.stderr}`);
     return r.stdout;

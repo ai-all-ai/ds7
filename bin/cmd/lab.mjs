@@ -9,31 +9,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { serve, routesOf } from '../lib/static-server.mjs';
+import { loadConfig, internalRoutes } from '../lib/config.mjs';
+import { arg, buildDir } from '../lib/cli.mjs';
+import { requireOptional } from '../lib/optional.mjs';
 
-const arg = (k, d) => {
-  const i = process.argv.indexOf(`--${k}`);
-  return i > -1 ? process.argv[i + 1] : d;
-};
-const OUT = path.resolve(arg('out', '.output/public'));
+const OUT = buildDir();
 const RUNS = Number(arg('runs', 3));
 const LIMIT = { lcp: 2500, cls: 0.1, blocking: 200 };
+const { chromium, devices } = requireOptional('playwright', 'ds7 lab');
 const req = createRequire(path.resolve('package.json'));
-let chromium, devices;
-try {
-  ({ chromium, devices } = req('playwright'));
-} catch {
-  console.error(
-    'Playwright is missing. Run:  npm i -D playwright && npx playwright install chromium',
-  );
-  process.exit(1);
-}
-if (!fs.existsSync(OUT)) {
-  console.error(`Folder ${OUT} is missing. Run first: npm run generate`);
-  process.exit(1);
-}
-
 const { base, close } = await serve(OUT);
-const routes = arg('routes', '') ? arg('routes').split(',') : routesOf(OUT);
+const routes = arg('routes', '')
+  ? arg('routes').split(',')
+  : routesOf(OUT, internalRoutes(loadConfig()));
 const median = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
 
 // observers installed before the page runs

@@ -79,3 +79,17 @@ test('html explains what to run when there is no build', (t) => {
   assert.equal(r.status, 1);
   assert.match(r.out, /npm run generate/);
 });
+
+test('html under a base path reports a root path outside the base and accepts one inside it', (t) => {
+  const dir = site(t, (d) =>
+    editPage(d, '/about', (s) =>
+      s.replace(
+        '<h1>About our shop</h1>',
+        '<h1>About our shop</h1><a href="/shop/contact/">in</a><a href="/contact/">out</a>',
+      ),
+    ),
+  );
+  const r = cli(dir, ['audit', 'html', '--base', '/shop/']);
+  assert.match(r.out, /outside-base[\s\S]*\/contact\/ does not start with \/shop\//);
+  assert.doesNotMatch(r.out, /broken-link[\s\S]*\/shop\/contact/);
+});
