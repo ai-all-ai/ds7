@@ -341,6 +341,20 @@ test('seo notes, but does not fail, a sitemap without lastmod', (t) => {
   assert.match(r.out, /no <lastmod>/);
 });
 
+test('seo fails a sitemap without lastmod when seo.lastmod is "require"', (t) => {
+  const r = run(
+    site(t, (d) => config(d, (c) => ({ ...c, seo: { ...c.seo, lastmod: 'require' } }))),
+  );
+  assert.notEqual(r.status, 0);
+  assert.match(r.out, /sitemap-lastmod[\s\S]*no <lastmod>/);
+});
+
+test('seo says nothing about a sitemap without lastmod when seo.lastmod is off', (t) => {
+  const r = run(site(t, (d) => config(d, (c) => ({ ...c, seo: { ...c.seo, lastmod: false } }))));
+  assert.equal(r.status, 0);
+  assert.doesNotMatch(r.out, /lastmod/);
+});
+
 // ---- llms.txt ----
 const llms = (text) => (d) => put(d, '.output/public/llms.txt', text);
 

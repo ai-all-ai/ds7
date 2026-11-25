@@ -1,6 +1,6 @@
 {
   "name": "@ai.all/ds7",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "AI-ready architecture standard for web projects: brand-first foundations, Atomic Design and agent rules in one place",
   "keywords": [
     "architecture",
@@ -44,6 +44,7 @@
     "10-operations/",
     "templates/",
     "ALL.md",
+    "CONFIG.md",
     "CHANGELOG.md",
     "README.md",
     "SPEC.md"
@@ -53,6 +54,25 @@
   },
   "dependencies": {
     "@ai.all/aiall": "^1.0.0"
+  },
+  "peerDependencies": {
+    "playwright": ">=1.40",
+    "postcss": ">=8.4",
+    "sharp": ">=0.33"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    },
+    "postcss": {
+      "optional": true
+    },
+    "sharp": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "postcss": "^8.5.6"
   },
   "publishConfig": {
     "access": "public",

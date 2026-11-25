@@ -8,7 +8,7 @@
 > Project-specific rules live in the root `ALL.md`, below the AI-ALL packs block (`<!-- aiall:begin packs -->` to `<!-- aiall:end packs -->`). AI-ALL keeps that text on sync. Longer project documents for agents live in `ds7/local/`, which `ds7 update` never writes; the root `ALL.md` links to them. Where project rules and this file disagree, the project rules win for that project and the disagreement is recorded in `docs/DECISIONS.md`.
 > This file is the `ds7` pack of AI-ALL. The root `ALL.md` lists it in the packs block. Every entrypoint (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/*`, `.windsurf/rules/*`, `.github/copilot-instructions.md`) points to the root `ALL.md`. Sync them with `npx @ai.all/aiall sync`.
 
-**Version:** 2.4.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, Tailwind CSS v4, `@nuxtjs/i18n`, static generation.
+**Version:** 2.5.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, Tailwind CSS v4, `@nuxtjs/i18n`, static generation.
 
 ---
 
@@ -79,11 +79,11 @@ Full rules: `02-design-system/NAMING-CONVENTIONS.md` and `01-architecture/MODIFI
 - **Element:** double underscore: `.p-card__title`.
 - **Modifier:** a **separate** class starting with a dash: `.-top`, `.-compact`, `.-lg`. Combine freely: `class="p-card -top -compact"`.
 - **Forbidden:** appending a word to a base name (`.btn-lg`, `.card-big`, `.hero-active`). Use `.btn.-lg`.
-- **State:** `is-` prefix: `.is-open`, `.is-active`, `.is-loading`.
+- **State:** a dash modifier like any other variant: `.menu.-open`, `.tab.-active`, `.btn.-loading`. Projects that already use `is-` keep them; `guard.stateClasses` in `ds7.config.json` decides whether the guard warns, fails or stays silent.
 - **Page context:** `body.page-<slug>` set by `usePageSeo`. Override shared components through that class or through CSS custom properties. Never through a new file.
 - **Colour in components:** tokens only (`var(--color-…)`). No raw hex or `rgb()` in component CSS.
 - **Yellow accent (`--color-sun`) is never text.** It is a fill, a badge background or a marker.
-- **Enforcement:** Run `npx @ai.all/ds7 guard` (`07-testing/VALIDATORS-AND-GUARDS.md`). It forbids baked-in modifier classes, checks atomic layer boundaries, and flags pages exceeding 40 lines of scoped CSS.
+- **Enforcement:** Run `npx @ai.all/ds7 guard` (`07-testing/VALIDATORS-AND-GUARDS.md`). It forbids baked-in modifier classes, checks atomic layer boundaries, and flags pages exceeding 40 lines of scoped CSS. Every rule is set or switched off in `ds7.config.json` (`CONFIG.md`).
 
 ---
 
@@ -101,7 +101,7 @@ Full rules: `02-design-system/NAMING-CONVENTIONS.md` and `01-architecture/MODIFI
 Full rules: `03-performance-web-vitals/ASSETS-PIPELINE.md`, `03-performance-web-vitals/FONTS-ZERO-CLS.md`, `03-performance-web-vitals/MEDIA-LIBRARY-DS5.md`.
 
 - **Developer Media Library:** Unprocessed originals (`ds5/`, `.ds5/`) remain in `.gitignore`. Production assets live in `public/`.
-- **Responsive variants:** Generate multi-resolution WebP variants via `npx @ai.all/ds7 images` (`--check` in CI).
+- **Responsive variants:** Generate multi-resolution WebP variants via `npx @ai.all/ds7 images` (`--check` in CI); `images optimize`, `images strip` and `images dupes` compress once, remove hidden metadata and find the same photo saved twice.
 - **Every image from `public/` goes through the responsive image component** (`UiImg` in the reference project). Raw `<img src="/…">` is allowed only when the component wraps it.
 - **Explicit `width` and `height`** (or an `aspect-ratio` box) on every image. This gives CLS 0.
 - **Lazy by default.** The single LCP image above the fold is `eager` with `fetchpriority="high"`.
@@ -180,7 +180,7 @@ Full rules: `04-seo-ai-optimization/`.
 ## 11. Git and releases
 
 - **Commit only when the owner asks, or when the task is explicitly "commit".** Never push unless the owner asks for it.
-- **Small commits**, one concern each. Subject in imperative mood, under 72 characters. Body explains *why*.
+- **Small commits**, one concern each, in [Conventional Commits](https://www.conventionalcommits.org/) form: `type(scope): subject` (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`). Subject in imperative mood, under 72 characters. Body explains *why*. `ds7 hooks` installs a `commit-msg` hook that checks the form.
 - **Trailers:** commit trailers (for example `Co-Authored-By`) come from the project owner's instructions. If none are given, add none.
 - **Do not commit** generated files unless the project lists them as tracked artifacts. Do not commit `node_modules/`, `.nuxt/`, `.output/`, logs or screenshots.
 - **Semantic versioning** for this package:
@@ -252,4 +252,4 @@ Full strategy: `08-token-optimization/TOKEN-STRATEGY.md`.
 | `SLD-01` | Card slider with scroll-snap | same |
 | `HOOK-01` | Overlap hook under the cover | same |
 
-**Before you finish any task, check:** every file in its place (`ds7 layout`) · graph current (`ds7 graph --check`) · no hard-coded UI text · no raw colours · no copied component · every image sized and routed through the image component · `npx @ai.all/ds7 check` clean · i18n keys in all locales · axe clean at 390 / 820 / 1440 · CHANGELOG line added · no junk left in the repo · security and cache headers and the 404 page unchanged or documented · no new advice lines from `ds7 audit perf`.
+**Before you finish any task, check:** every file in its place (`ds7 layout`) · graph current (`ds7 graph --check`) · no hard-coded UI text · no raw colours · no copied component · every image sized and routed through the image component · `npx @ai.all/ds7 check` clean · no dead CSS or unused component (`ds7 css`, `ds7 unused`) · console clean (`ds7 console`) · i18n keys in all locales · axe clean at 390 / 820 / 1440 · CHANGELOG line added · no junk left in the repo · security and cache headers and the 404 page unchanged or documented · no new advice lines from `ds7 audit perf`.

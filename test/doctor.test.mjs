@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { project, bare, miniApp, cli, put, edit, version } from './helpers.mjs';
 
 const doctor = (dir, ...args) => cli(dir, ['doctor', ...args]);
@@ -70,6 +71,41 @@ test('doctor reports a site graph that is out of date', (t) => {
   assert.equal(r.action, 'npx ds7 graph');
 });
 
+const ownGraph = (dir, exit) => {
+  put(dir, 'tools/graph.mjs', `process.exit(${exit});\n`);
+  edit(dir, 'package.json', (s) => {
+    const p = JSON.parse(s);
+    p.scripts['graph:check'] = 'node tools/graph.mjs --check';
+    return JSON.stringify(p);
+  });
+};
+
+test('doctor runs the project own graph:check script instead of the built-in check', (t) => {
+  const dir = project(t);
+  miniApp(dir);
+  ownGraph(dir, 0);
+  const r = row(dir, 'graph');
+  assert.equal(r.state, 'ok');
+  assert.match(r.text, /npm run graph:check/);
+});
+
+test('doctor reports when the project graph:check script fails', (t) => {
+  const dir = project(t);
+  ownGraph(dir, 1);
+  const r = row(dir, 'graph');
+  assert.equal(r.state, 'todo');
+  assert.equal(r.action, 'npm run graph');
+});
+
+test('doctor skips the site graph when graph.check is false', (t) => {
+  const dir = project(t);
+  miniApp(dir);
+  edit(dir, 'ds7.config.json', (s) =>
+    JSON.stringify({ ...JSON.parse(s), graph: { check: false } }),
+  );
+  assert.equal(row(dir, 'graph').state, 'info');
+});
+
 test('doctor shows how many findings the baseline holds per command', (t) => {
   const dir = project(t);
   put(dir, 'app/stray.ts', 'export const x = 1;\n');
@@ -103,4 +139,31 @@ test('doctor changes no file', (t) => {
   const before = files();
   doctor(dir);
   assert.deepEqual(files(), before);
+});
+
+test('doctor reports a .gitignore rule that hides ds7/', (t) => {
+  const dir = project(t);
+  spawnSync('git', ['init', '-q'], { cwd: dir });
+  put(dir, '.gitignore', '/ds[0-9]*/\n');
+  const rows = rowsOf(dir).filter((r) => r.name === 'standard');
+  assert.ok(
+    rows.some((r) => /\.gitignore hides ds7/.test(r.text)),
+    JSON.stringify(rows),
+  );
+});
+
+test('doctor reports a ds7/ folder that is a clone of the source', (t) => {
+  const dir = project(t);
+  put(dir, 'ds7/.git/HEAD', 'ref: refs/heads/main\n');
+  assert.ok(rowsOf(dir).some((r) => /git clone of the DS7 source/.test(r.text)));
+});
+
+test('doctor lists what ds7.config.json switches off and keys no command reads', (t) => {
+  const dir = project(t);
+  edit(dir, 'ds7.config.json', (s) =>
+    JSON.stringify({ ...JSON.parse(s), css: false, check: { gates: { tokens: false } }, sweo: {} }),
+  );
+  const rows = rowsOf(dir);
+  assert.match(rows.find((r) => r.name === 'switches').text, /gate tokens, ds7 css/);
+  assert.ok(rows.some((r) => /keys no command reads: sweo/.test(r.text)));
 });

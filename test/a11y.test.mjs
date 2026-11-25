@@ -1,7 +1,7 @@
 // `ds7 audit a11y`: the scriptable part of WCAG 2.2 A and AA. One test per rule.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { site, cli, editPage, edit } from './helpers.mjs';
+import { site, cli, editPage, edit, put } from './helpers.mjs';
 
 const run = (dir) => cli(dir, ['audit', 'a11y']);
 const inMain = (html) => (s) => s.replace('</main>', `${html}</main>`);
@@ -120,4 +120,49 @@ test('a11y reports a stylesheet without a prefers-reduced-motion rule', (t) => {
     edit(d, '.output/public/_nuxt/entry.css', () => 'a:focus-visible{outline:2px solid #000}'),
   );
   assert.match(run(dir).out, /reduced-motion \(WCAG 2\.3\.3\)/);
+});
+
+const a11ySettings = (dir, a11y) =>
+  edit(dir, 'ds7.config.json', (s) => JSON.stringify({ ...JSON.parse(s), a11y }));
+const withSkipLink = (s) =>
+  s
+    .replace('<header>', '<a href="#main">Skip to content</a><header>')
+    .replace('<main>', '<main id="main">');
+
+test('a11y advises on a page without a skip link, and fails on it when a11y.skipLink is "require"', (t) => {
+  const dir = site(t);
+  const r = run(dir);
+  assert.equal(r.status, 0, r.out);
+  assert.match(r.out, /advice: .*skip link/);
+  a11ySettings(dir, { skipLink: 'require' });
+  assert.match(run(dir).out, /skip-link \(WCAG 2\.4\.1\)/);
+});
+
+test('a11y accepts a skip link to <main id> as the first link', (t) => {
+  const dir = site(t, (d) => {
+    for (const p of ['/', '/about', '/contact']) editPage(d, p, withSkipLink);
+  });
+  a11ySettings(dir, { skipLink: 'require' });
+  const r = run(dir);
+  assert.equal(r.status, 0, r.out);
+});
+
+test('a11y with exceptionPolicy "strict" wants a reason, the comment above the rule and no stale entry', (t) => {
+  const dir = site(t);
+  put(dir, 'app/assets/css/ui.css', '.faint { color: #999999; background: #ffffff }\n');
+  a11ySettings(dir, {
+    exceptionPolicy: 'strict',
+    exceptions: [
+      { selector: '.faint', reason: 'owner keeps it' },
+      {
+        selector: '.gone',
+        reason:
+          'a large display heading, decided by the owner on 2026-11-01, ends with the redesign',
+      },
+    ],
+  });
+  const out = run(dir).out;
+  assert.match(out, /needs a reason that says why/);
+  assert.match(out, /put \/\* a11y exception/);
+  assert.match(out, /"\.gone" no longer matches a failing rule/);
 });

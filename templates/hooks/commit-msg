@@ -1,0 +1,12 @@
+#!/bin/sh
+# Conventional Commits for the subject line: type(scope): subject, lowercase, no trailing period.
+# Install: npx ds7 hooks (or copy to .git/hooks/commit-msg and make it executable).
+subject=$(head -n 1 "$1")
+case "$subject" in
+  Merge\ *|Revert\ *|fixup!\ *|squash!\ *) exit 0 ;;
+esac
+if ! printf '%s' "$subject" | grep -Eq '^(feat|fix|refactor|perf|style|docs|test|build|ci|chore)(\([a-z0-9-]+\))?!?: [a-z0-9].*[^.]$'; then
+  echo "commit-msg: \"$subject\""
+  echo "  expected: type(scope): subject   (feat, fix, refactor, perf, style, docs, test, build, ci, chore)"
+  exit 1
+fi

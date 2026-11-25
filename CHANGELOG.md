@@ -4,6 +4,50 @@ All notable changes to DS7 are recorded here. Format: [Keep a Changelog](https:/
 
 ## [Unreleased]
 
+## [2.5.0] — 2026-11-25
+
+### Added
+- `CONFIG.md`: every key of `ds7.config.json`, its default and how to switch it off. Each rule of DS7 can be configured or turned off; `ds7 doctor` lists the switches in use and warns about unknown keys.
+- `ds7 css`: stylesheets the entry never imports and classes no template, script or locale names; as advice, selectors repeated in one context and identical declaration blocks. `ds7 css diff [REV] [FILE...]` proves a CSS refactor lost or gained no selector and property.
+- `ds7 unused`: components, composables, data files and public assets nothing refers to. It understands Nuxt auto-imports, `Lazy` and unprefixed component names and responsive image variants.
+- `ds7 console`: opens every generated page in Chromium at each width of `console.widths` and fails on hydration mismatches, exceptions, console errors and warnings, failed requests and HTTP errors. Known messages go into `console.allow`.
+- `ds7 images optimize | strip | dupes`: compress each WebP once and record it (a picture that loses visible quality is listed), remove hidden metadata such as C2PA, EXIF and XMP without touching pixels, and find the same photo saved twice, also as a near copy.
+- `ds7 pages`: the preset for a static site on GitHub Pages under a base path, an `asset()` helper and a deploy workflow; it never overwrites, and keeps a workflow that already deploys. `ds7 audit html` reports paths that leave the base (`--base` or `NUXT_APP_BASE_URL`).
+- `ds7 adopt`: lists which local `tools/` and `scripts/` a ds7 command replaces; `--write` rewrites the npm scripts that only call such a tool.
+- `ds7 skills link`: links the skills of `ds7/` into `.claude/skills` (copies them where links are not possible). New skills `project-rules`, `code-audit` and `search-quality`.
+- `ds7 hooks`: installs a `commit-msg` hook that checks Conventional Commits.
+- `ds7 patch FILE`: records a local edit of `ds7/FILE` as a patch in `ds7/local/patches/`; `ds7 update` applies the patches again after updating.
+- `ds7/FILES`: the hashes of the files as shipped. `ds7 update` saves an edited file that no patch covers to `ds7/local/edited/` before replacing it, so local edits are never lost.
+- `init` writes `ds7/local/README.md` and `ds7/local/RECURRING-RULES.md`; `init --yes` takes every default.
+- `ds7 audit a11y`: the skip link is checked (`a11y.skipLink`), exceptions in the code follow `a11y.exceptionPolicy`, advice lines are printed apart from failures.
+- `ds7 audit seo`: `seo.lastmod` for sites without `<lastmod>` in the sitemap.
+- `ds7 check`: `check.gates` switches single gates off; `--json`, `--update-baseline` and `--no-baseline`, like the other commands.
+- A reusable workflow for sites, `.github/workflows/site.yml` (`uses: ai-all/ds7/.github/workflows/site.yml@v2.5.0`), with inputs for the Node version, check, build, audits, GitHub Pages and `noindex`.
+- Release workflow: GitHub release, npm publish with provenance (tag `next` for pre-releases) and the Homebrew formula update. CI runs on Windows too; Dependabot keeps the actions current.
+- `postcss`, `sharp` and `playwright` are optional peer dependencies. A command that needs one prints the install line when it is missing, and fails only in CI.
+
+### Changed
+- Gate 3 of `ds7 check` (locale parity) reads TS and JS locales with a tokenizer: full key paths are compared, words in strings and comments are never taken for keys, a key written twice is reported, and locales split into folders (`es/home.json`) are read. With one locale it says there is nothing to compare yet.
+- `ds7 guard`: `is-` state classes follow `guard.stateClasses` (`"warn"` by default, as advice; `"deny"`; `"allow"`). Modifier words, allowed classes, upper layers (by default the folders next to `components/ui/`), the page folder and the 40-line page style limit are all settings.
+- `ALL.md` and `SPEC.md`: state is written as a dash modifier (`.menu.-open`); commits follow Conventional Commits.
+- `init` does not add `ds7.yml` when another workflow already runs `ds7 check`.
+- `ds7 doctor`: runs the project's own `graph:check` script when there is one (`graph.check`), warns when `ds7/` is a git clone of the standard or hidden by `.gitignore`, and shows which optional packages are installed.
+- `ds7 audit perf`: disabled and print stylesheets no longer count as blocking.
+- `ds7 docs`: paths ignored by git are skipped (`docs.skipIgnored`).
+- Internal routes (`seo.internal`) cover the route, everything under it and its copy in each locale (`/en/owner`).
+- Shared code of the commands moved to `bin/lib/cli.mjs`; the image command moved to `bin/cmd/images.mjs`.
+
+### Fixed
+- `ds7 layout` and Gate 5 never list `node_modules/`, `.output/` and other dependency or build folders, also in a new repository whose `.gitignore` does not name them yet.
+- Gate 3 no longer misses a key that is absent in one locale but has the same name elsewhere.
+- `ds7 audit a11y` finds `postcss` installed in the project, not only next to DS7.
+
+### Compatibility
+- Run `npx @ai.all/ds7 update`. If you edited files under `ds7/`, run `npx @ai.all/ds7 patch FILE` for each before updating, or find them afterwards in `ds7/local/edited/`.
+- Gate 3 now compares full key paths and may report keys the old check missed. Add the missing keys, or record the findings with `ds7 check --update-baseline`.
+- `is-` state classes are listed as advice and do not fail. Set `"guard": { "stateClasses": "allow" }` to hide the advice; the default becomes `"deny"` in 3.0.
+- Commands that need `postcss`, `sharp` or `playwright` ask to install them in the project (`npm i -D postcss`) instead of relying on a copy next to DS7.
+
 ## [2.4.0] — 2026-11-25
 
 ### Added

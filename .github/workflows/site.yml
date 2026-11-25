@@ -1,0 +1,101 @@
+# Reusable workflow for a site built with DS7: checks, build and audits on every push and pull request, and optionally
+# a GitHub Pages deploy from main. A project calls it from its own workflow:
+#
+#   jobs:
+#     site:
+#       uses: ai-all-ai/ds7/.github/workflows/site.yml@v2.5.0
+#       with:
+#         pages: true
+#       permissions:
+#         contents: read
+#         pages: write
+#         id-token: write
+#
+# Every step runs an npm script of the project, so the project decides what "check" and "audit" mean.
+name: Site (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node version; empty reads .nvmrc
+        type: string
+        default: ''
+      check:
+        description: npm script with the quality gates
+        type: string
+        default: check:strict
+      build:
+        description: npm script that writes the static site to .output/public
+        type: string
+        default: generate
+      audit:
+        description: npm script with the audits of the build; empty skips them
+        type: string
+        default: audit
+      pages:
+        description: deploy main to GitHub Pages under the repository base path
+        type: boolean
+        default: false
+      noindex:
+        description: close the Pages copy to search engines (a preview, not the real site)
+        type: boolean
+        default: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node-version }}
+          node-version-file: ${{ inputs.node-version == '' && '.nvmrc' || '' }}
+          cache: npm
+      - run: npm ci
+      - name: Quality gates
+        run: npm run ${{ inputs.check }}
+      - name: Build
+        run: npm run ${{ inputs.build }}
+      - name: Audits
+        if: inputs.audit != ''
+        run: npm run ${{ inputs.audit }}
+
+  pages:
+    if: inputs.pages && github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node-version }}
+          node-version-file: ${{ inputs.node-version == '' && '.nvmrc' || '' }}
+          cache: npm
+      - run: npm ci
+      - id: base
+        uses: actions/configure-pages@v5
+      - name: Build under the base path
+        run: npm run ${{ inputs.build }}
+        env:
+          NUXT_APP_BASE_URL: ${{ steps.base.outputs.base_path }}/
+      - name: No root path outside the base
+        run: npx ds7 audit html --base "${{ steps.base.outputs.base_path }}/"
+      - name: Close the preview to search engines
+        if: inputs.noindex
+        run: |
+          find .output/public -name '*.html' -exec sed -i 's#<head>#<head><meta name="robots" content="noindex, nofollow">#' {} +
+          printf 'User-agent: *\nDisallow: /\n' > .output/public/robots.txt
+          find .output/public \( -name '*.br' -o -name '*.gz' \) -delete
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: .output/public
+      - id: deploy
+        uses: actions/deploy-pages@v4

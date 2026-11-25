@@ -5,42 +5,23 @@
 //   ds7 audit a11y [--out .output/public]
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
-import { loadConfig } from '../lib/config.mjs';
+import { loadConfig, internalRoutes } from '../lib/config.mjs';
 import { conclude, showByRule } from '../lib/report.mjs';
+import { optional } from '../lib/optional.mjs';
 
 const cfg = loadConfig();
-// postcss comes from the project (Nuxt and Tailwind bring it); without it the contrast check is skipped
-let postcss;
-try {
-  postcss = createRequire(path.resolve('package.json'))('postcss');
-} catch {
-  /* optional */
-}
+// postcss comes from the project (Nuxt and Vite bring it); without it the contrast check is skipped
+const postcss = optional('postcss');
 import { parse, all, text, attr, ancestors } from '../lib/html.mjs';
+import { arg, buildDir, walk } from '../lib/cli.mjs';
 
-const arg = (k, d) => {
-  const i = process.argv.indexOf(`--${k}`);
-  return i > -1 ? process.argv[i + 1] : d;
-};
-const OUT = path.resolve(arg('out', '.output/public'));
-if (!fs.existsSync(OUT)) {
-  console.error(`Folder ${OUT} is missing. Run first: npm run generate`);
-  process.exit(1);
-}
-const walk = (d) =>
-  fs
-    .readdirSync(d, { withFileTypes: true })
-    .flatMap((e) =>
-      e.isDirectory()
-        ? e.name === '_nuxt'
-          ? []
-          : walk(path.join(d, e.name))
-        : [path.join(d, e.name)],
-    );
-const INTERNAL = ['/ui', '/ds'];
+const OUT = buildDir();
+const walkBuild = (d) => walk(d, ['_nuxt']);
+const isInternal = internalRoutes(cfg);
 
 const problems = [];
+const notes = [];
+const skipAdvice = new Set();
 const bad = (page, sc, rule, detail) => problems.push({ where: page, sc, rule, detail });
 const brief = (n) =>
   `<${n.tag}${attr(n, 'class') ? ` class="${attr(n, 'class').slice(0, 40)}"` : ''}${attr(n, 'href') ? ` href="${attr(n, 'href').slice(0, 40)}"` : ''}>`;
@@ -85,7 +66,7 @@ const AUTOCOMPLETE = [
   [/^(name|nombre)$/i, 'name'],
 ];
 
-const pages = walk(OUT)
+const pages = walkBuild(OUT)
   .filter((f) => path.basename(f) === 'index.html')
   .map((f) => {
     const rel = '/' + path.relative(OUT, path.dirname(f)).split(path.sep).join('/');
@@ -94,7 +75,7 @@ const pages = walk(OUT)
       root: parse(fs.readFileSync(f, 'utf8')),
     };
   })
-  .filter((p) => !INTERNAL.includes(p.route));
+  .filter((p) => !isInternal(p.route));
 
 for (const { route: r, root } of pages) {
   const byId = new Map(all(root, (n) => attr(n, 'id')).map((n) => [attr(n, 'id'), n]));
@@ -147,6 +128,21 @@ for (const { route: r, root } of pages) {
     bad(r, '1.3.1', 'landmark-banner', 'no header landmark');
   if (!all(root, (n) => n.tag === 'footer' || attr(n, 'role') === 'contentinfo').length)
     bad(r, '1.3.1', 'landmark-contentinfo', 'no footer landmark');
+  // 2.4.1 skip link: the first link or button jumps to <main id>. Landmarks already meet the criterion; the link is for keyboard
+  // users who would tab through the whole header menu. a11y.skipLink: "warn" (default, advice), "require" (a finding), "off".
+  if (cfg.a11y.skipLink !== 'off' && mains.length === 1) {
+    const first = all(
+      root,
+      (n) => (n.tag === 'a' && attr(n, 'href') !== undefined) || n.tag === 'button',
+    )[0];
+    const href = (first && attr(first, 'href')) || '';
+    const target = href.startsWith('#') ? byId.get(decodeURIComponent(href.slice(1))) : null;
+    if (target !== mains[0]) {
+      const why = `the first link of the page is ${first ? brief(first) : 'missing'}; a skip link to <main id> should come first`;
+      if (cfg.a11y.skipLink === 'require') bad(r, '2.4.1', 'skip-link', why);
+      else skipAdvice.add(r);
+    }
+  }
   const navs = all(root, (n) => n.tag === 'nav' && !isHidden(n));
   if (navs.length > 1)
     for (const n of navs)
@@ -280,6 +276,22 @@ if (!/prefers-reduced-motion/.test(css))
 // Text on photos, gradients and semi-transparent colours cannot be proven here; those need the browser check.
 // Accepted exceptions (large text, owner decisions) are listed with a reason in a11y.exceptions of ds7.config.json ({ selector, reason }).
 const SRC = cfg.a11y.css;
+// a11y.exceptionPolicy: "warn" (default) notes a weak exception, "strict" makes it a finding, "off" only applies the list.
+// A good exception names why the colour stays, who decided and what ends it, has the comment
+// /* a11y exception: ... */ right above its rule, and still matches a failing rule.
+const exceptions = cfg.a11y.exceptions;
+const policy = cfg.a11y.exceptionPolicy;
+const weak = (where, detail) =>
+  policy === 'strict'
+    ? bad(where, '1.4.3', 'exception', detail)
+    : policy === 'warn' && notes.push(`${where}: ${detail}`);
+for (const e of exceptions)
+  if (!e.selector || !e.reason || e.reason.trim().length < 30)
+    weak(
+      'ds7.config.json',
+      `exception ${JSON.stringify(e.selector)} needs a reason that says why it stays, who decided and what ends it`,
+    );
+const used = new Set();
 let pairs = 0;
 if (!postcss || !fs.existsSync(SRC))
   console.log(
@@ -313,7 +325,6 @@ else {
     const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
     return (x + 0.05) / (y + 0.05);
   };
-  const exceptions = cfg.a11y.exceptions;
   for (const f of srcFiles)
     postcss.parse(fs.readFileSync(f, 'utf8'), { from: f }).walkRules((rule) => {
       const last = (prop) =>
@@ -331,7 +342,17 @@ else {
       pairs++;
       const sel = rule.selector.replace(/\s+/g, ' ');
       const got = ratio(a, b);
-      if (got < 4.5 && !exceptions.some((e) => sel.includes(e.selector)))
+      const accepted = got < 4.5 && exceptions.find((e) => e.selector && sel.includes(e.selector));
+      if (accepted) {
+        used.add(accepted);
+        const note = rule.prev();
+        if (!(note && note.type === 'comment' && /a11y exception/i.test(note.text)))
+          weak(
+            `${path.basename(f)}:${rule.source.start.line}`,
+            `${sel.slice(0, 50)} is an accepted exception: put /* a11y exception: <reason> */ right above the rule`,
+          );
+      }
+      if (got < 4.5 && !accepted)
         bad(
           `${path.basename(f)}:${rule.source.start.line}`,
           '1.4.3',
@@ -341,10 +362,26 @@ else {
     });
 }
 
+if (policy !== 'off' && postcss && fs.existsSync(SRC))
+  for (const e of exceptions)
+    if (e.selector && !used.has(e))
+      weak(
+        'ds7.config.json',
+        `exception ${JSON.stringify(e.selector)} no longer matches a failing rule: remove it`,
+      );
+if (skipAdvice.size)
+  notes.push(
+    `${skipAdvice.size} page(s) do not start with a skip link to <main id> (${[...skipAdvice].slice(0, 3).join(', ')}); set a11y.skipLink to "require" to enforce, "off" to silence`,
+  );
+
 conclude({
   command: 'a11y',
+  notes,
   cli: 'audit a11y',
   summary: (n) => `a11y-check: ${pages.length} pages, ${pairs} colour pairs, ${n} problems`,
   findings: problems,
-  show: showByRule(8, (rule, list) => `${rule} (WCAG ${list[0].sc}): ${list.length}`),
+  show: (fresh) => {
+    showByRule(8, (rule, list) => `${rule} (WCAG ${list[0].sc}): ${list.length}`)(fresh);
+    for (const n of notes) console.log(`\nadvice: ${n}`);
+  },
 });

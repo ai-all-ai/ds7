@@ -73,6 +73,20 @@ test('perf reports too many blocking stylesheets', (t) => {
   assert.match(run(dir).out, /budget-stylesheets/);
 });
 
+test('perf does not count disabled or print stylesheets as blocking', (t) => {
+  // Nuxt 4.7 writes lazy component CSS as <link rel="stylesheet" disabled>
+  const dir = site(t, (d) => {
+    const tags = Array.from({ length: 5 }, (_, i) =>
+      i < 3
+        ? `<link rel="stylesheet" href="/_nuxt/c${i}.css" disabled>`
+        : `<link rel="stylesheet" href="/_nuxt/c${i}.css" media="print">`,
+    ).join('');
+    for (let i = 0; i < 5; i++) put(d, `.output/public/_nuxt/c${i}.css`, 'a{color:#000}');
+    editPage(d, '/', (s) => s.replace('</head>', `${tags}</head>`));
+  });
+  assert.doesNotMatch(run(dir).out, /budget-stylesheets/);
+});
+
 test('perf reports a resource that loads from another origin', (t) => {
   const dir = site(t, (d) =>
     editPage(d, '/', (s) =>

@@ -139,11 +139,100 @@ export function loadConfig(root = process.cwd()) {
       stopwords: user.seo?.stopwords ?? DEFAULT_STOPWORDS,
       trailingSlash: user.seo?.trailingSlash ?? false,
       llms: user.seo?.llms ?? false,
+      lastmod: user.seo?.lastmod === false ? 'off' : (user.seo?.lastmod ?? 'warn'),
       socialImage: { ...DEFAULT_SOCIAL_IMAGE, ...(user.seo?.socialImage ?? {}) },
     },
-    a11y: { css: user.a11y?.css ?? 'app/assets/css', exceptions: user.a11y?.exceptions ?? [] },
+    a11y: {
+      css: user.a11y?.css ?? 'app/assets/css',
+      exceptions: user.a11y?.exceptions ?? [],
+      exceptionPolicy: user.a11y?.exceptionPolicy ?? 'warn',
+      skipLink: user.a11y?.skipLink === false ? 'off' : (user.a11y?.skipLink ?? 'warn'),
+    },
     perf: { budgets: { ...DEFAULT_BUDGETS, ...(user.perf?.budgets ?? {}) } },
+    // css: false turns `ds7 css` off; dead and orphans fail, repeats are advice ("off" hides them)
+    css: {
+      off: user.css === false,
+      dir: user.css?.dir ?? 'app/assets/css',
+      entry: user.css?.entry ?? 'main.css',
+      sources: user.css?.sources ?? [
+        'app',
+        'components',
+        'pages',
+        'layouts',
+        'src',
+        'i18n',
+        'nuxt.config.ts',
+      ],
+      orphans: user.css?.orphans ?? true,
+      dead: user.css?.dead ?? true,
+      repeats: user.css?.repeats ?? 'warn',
+      allow: user.css?.allow ?? [],
+    },
+    // unused: false turns `ds7 unused` off; each kind can be switched off; ignore holds globs of files never reported
+    unused: {
+      off: user.unused === false,
+      components: user.unused?.components ?? true,
+      composables: user.unused?.composables ?? true,
+      data: user.unused?.data ?? true,
+      assets: user.unused?.assets ?? true,
+      publicDir: user.unused?.publicDir ?? 'public',
+      sources: user.unused?.sources ?? [
+        'app',
+        'components',
+        'pages',
+        'layouts',
+        'src',
+        'server',
+        'i18n',
+        'content',
+        'tools',
+        'scripts',
+        'nuxt.config.ts',
+        'app.config.ts',
+        'ds7.config.json',
+        'package.json',
+      ],
+      ignore: user.unused?.ignore ?? [],
+    },
+    // console: widths of the browser check, whether warnings fail, known messages (regular expressions)
+    console: {
+      widths: user.console?.widths ?? [1440, 390],
+      warnings: user.console?.warnings ?? true,
+      allow: user.console?.allow ?? [],
+    },
+    // images: false turns `ds7 images` off; the variants, optimize, strip and dupes modes each read their part
+    images: {
+      off: user.images === false,
+      publicDir: user.images?.publicDir ?? 'public',
+      dir: user.images?.dir ?? 'public/images',
+      widths: user.images?.widths ?? [400, 800, 1200],
+      minWidth: user.images?.minWidth ?? 900,
+      quality: user.images?.quality ?? 72,
+      manifest:
+        user.images?.manifest === false
+          ? null
+          : (user.images?.manifest ?? 'app/data/image-variants.json'),
+      optimize: {
+        quality: 75,
+        alphaQuality: 90,
+        minSaving: 0.1,
+        minPsnr: 36,
+        checkOverKB: 300,
+        record: 'app/data/image-optimized.json',
+        ...(user.images?.optimize ?? {}),
+      },
+      strip: {
+        dirs: ['public'],
+        xmp: true,
+        stopwords: ['and', 'the', 'with', 'for', 'del', 'por', 'cutout', 'closeup', 'wide', 'view'],
+        ...(user.images?.strip ?? {}),
+      },
+      dupes: { distance: 4, ...(user.images?.dupes ?? {}) },
+    },
+    // graph.check: "auto" runs the project's own graph:check script when it has one that is not ds7's, else the built-in check; "ds7" always the built-in one; false skips it
+    graph: { check: user.graph?.check === false ? 'off' : (user.graph?.check ?? 'auto') },
     docs: {
+      skipIgnored: user.docs?.skipIgnored ?? true,
       roots: user.docs?.roots ?? [
         'app',
         'docs',
@@ -157,6 +246,18 @@ export function loadConfig(root = process.cwd()) {
         '.ai',
       ],
     },
+  };
+}
+
+// A test for the developer pages of seo.internal ("/ui", "/owner"): the page itself, anything under it, and its copy under a
+// locale prefix ("/en/owner"). Every command that walks the build leaves these pages out.
+export function internalRoutes(cfg) {
+  const strip = (r) => r.replace(/\/+$/, '') || '/';
+  const list = cfg.seo.internal.map(strip);
+  return (route) => {
+    const r = strip(route);
+    const bare = r.replace(/^\/[a-z]{2}(?:-[a-z]{2})?(?=\/)/i, '');
+    return list.some((i) => [r, bare].some((x) => x === i || x.startsWith(`${i}/`)));
   };
 }
 

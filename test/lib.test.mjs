@@ -142,3 +142,12 @@ test('loadConfig: seo defaults are no trailing slash, llms.txt optional, a 1200 
   assert.equal(seo.llms, false);
   assert.deepEqual(seo.socialImage, { minWidth: 1200, minRatio: 1.6, maxRatio: 2.1, maxKB: 300 });
 });
+
+test('internalRoutes leaves out the developer pages, what is under them and their locale copies', async () => {
+  const { internalRoutes } = await lib('config.mjs');
+  const isInternal = internalRoutes({ seo: { internal: ['/ui', '/owner/'] } });
+  for (const r of ['/ui', '/ui/', '/ui/tokens/', '/owner', '/en/owner/', '/pt-br/ui'])
+    assert.ok(isInternal(r), `${r} is internal`);
+  for (const r of ['/', '/guide/', '/blog/ui-tips/', '/menu/'])
+    assert.ok(!isInternal(r), `${r} is public`);
+});

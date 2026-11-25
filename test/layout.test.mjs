@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { project, miniApp, cli, put, edit } from './helpers.mjs';
 
 const layout = (dir) => cli(dir, ['layout']);
@@ -13,6 +14,18 @@ test('layout passes on a project with a clean mini app', (t) => {
   const r = layout(dir);
   assert.equal(r.status, 0, r.out);
   assert.match(r.out, /0 problems/);
+});
+
+test('layout never lists dependency or build folders, even when .gitignore does not name them yet', (t) => {
+  const dir = project(t);
+  miniApp(dir);
+  spawnSync('git', ['init', '-q'], { cwd: dir });
+  fs.writeFileSync(path.join(dir, '.gitignore'), '');
+  put(dir, 'node_modules/pkg/README.md', '# pkg\n');
+  put(dir, '.output/public/index.html', '<!doctype html>\n');
+  const r = layout(dir);
+  assert.equal(r.status, 0, r.out);
+  assert.doesNotMatch(r.out, /node_modules|\.output/);
 });
 
 test('layout reports a file that no placement rule covers', (t) => {

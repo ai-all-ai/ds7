@@ -25,6 +25,22 @@ test('graph fills the placement table of docs/ARCHITECTURE.md between its marker
   );
 });
 
+test('graph header examples name a component, route and class the project has', (t) => {
+  const dir = project(t);
+  put(
+    dir,
+    'app/components/card/CardTile.vue',
+    '<template><div class="tile"><slot /></div></template>\n',
+  );
+  put(dir, 'app/pages/index.vue', '<template><CardTile /></template>\n');
+  put(dir, 'app/pages/prices.vue', '<template><CardTile /></template>\n');
+  assert.equal(graph(dir).status, 0);
+  const text = read(dir, 'docs/SITE-GRAPH.md');
+  assert.match(text, /--uses CardTile`/);
+  assert.match(text, /--of \/prices`/);
+  assert.ok(!text.includes('UiButton'), 'no example from another project');
+});
+
 test('graph --check passes on a current graph', (t) => {
   assert.equal(graph(ready(t), '--check').status, 0);
 });

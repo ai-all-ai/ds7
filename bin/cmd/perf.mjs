@@ -13,32 +13,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { parse, all, attr, ancestors } from '../lib/html.mjs';
-import { loadConfig, siteUrl } from '../lib/config.mjs';
+import { internalRoutes, loadConfig, siteUrl } from '../lib/config.mjs';
 import { conclude, showByRule } from '../lib/report.mjs';
+import { arg, buildDir, walk } from '../lib/cli.mjs';
 
 const cfg = loadConfig();
 
 const BUDGET = cfg.perf.budgets;
-const arg = (k, d) => {
-  const i = process.argv.indexOf(`--${k}`);
-  return i > -1 ? process.argv[i + 1] : d;
-};
-const OUT = path.resolve(arg('out', '.output/public'));
-if (!fs.existsSync(OUT)) {
-  console.error(`Folder ${OUT} is missing. Run first: npm run generate`);
-  process.exit(1);
-}
+const OUT = buildDir();
 const SITE = siteUrl(cfg);
-const walk = (d) =>
-  fs
-    .readdirSync(d, { withFileTypes: true })
-    .flatMap((e) =>
-      e.isDirectory()
-        ? e.name === '_nuxt'
-          ? []
-          : walk(path.join(d, e.name))
-        : [path.join(d, e.name)],
-    );
+const walkBuild = (d) => walk(d, ['_nuxt']);
 const file = (url) => path.join(OUT, decodeURIComponent(url.split('?')[0]));
 const gz = (url) => {
   const f = file(url);
@@ -49,19 +33,24 @@ const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
 const problems = [],
   rows = [];
 const bad = (page, rule, detail) => problems.push({ where: page, rule, detail });
-const INTERNAL = cfg.seo.internal;
+const isInternal = internalRoutes(cfg);
 
-for (const f of walk(OUT).filter((f) => path.basename(f) === 'index.html')) {
+for (const f of walkBuild(OUT).filter((f) => path.basename(f) === 'index.html')) {
   const rel = '/' + path.relative(OUT, path.dirname(f)).split(path.sep).join('/');
   const r = rel === '/.' || rel === '/' ? '/' : rel;
-  if (INTERNAL.includes(r)) continue;
+  if (isInternal(r)) continue;
   const raw = fs.readFileSync(f, 'utf8');
   const root = parse(raw);
   const links = all(root, (n) => n.tag === 'link'),
     scripts = all(root, (n) => n.tag === 'script');
 
   // budgets
-  const css = links.filter((l) => attr(l, 'rel') === 'stylesheet').map((l) => attr(l, 'href'));
+  const sheets = links.filter((l) => attr(l, 'rel') === 'stylesheet');
+  const css = sheets.map((l) => attr(l, 'href'));
+  // a disabled stylesheet (Nuxt 4.7 writes lazy component CSS so) or one for print does not block the first render
+  const blocking = sheets.filter(
+    (l) => attr(l, 'disabled') === undefined && !/^\s*print\s*$/i.test(attr(l, 'media') || ''),
+  );
   const js = [
     ...new Set([
       ...links.filter((l) => attr(l, 'rel') === 'modulepreload').map((l) => attr(l, 'href')),
@@ -83,11 +72,11 @@ for (const f of walk(OUT).filter((f) => path.basename(f) === 'index.html')) {
   if (sizes.js > BUDGET.js) bad(r, 'budget-js', `${kb(sizes.js)} gzip (budget ${kb(BUDGET.js)})`);
   if (js.length > BUDGET.scripts)
     bad(r, 'budget-scripts', `${js.length} scripts (budget ${BUDGET.scripts})`);
-  if (css.length > BUDGET.stylesheets)
+  if (blocking.length > BUDGET.stylesheets)
     bad(
       r,
       'budget-stylesheets',
-      `${css.length} render-blocking stylesheets (budget ${BUDGET.stylesheets})`,
+      `${blocking.length} render-blocking stylesheets (budget ${BUDGET.stylesheets})`,
     );
 
   // other origins
@@ -167,12 +156,8 @@ if (woffFirst.length)
 
 // advice: printed, never fails in this version
 const advice = [];
-const walkAll = (d) =>
-  fs
-    .readdirSync(d, { withFileTypes: true })
-    .flatMap((e) => (e.isDirectory() ? walkAll(path.join(d, e.name)) : [path.join(d, e.name)]));
 const MIN_COMPRESS = 1024; // smaller files gain nothing; Nitro skips them too
-const uncompressed = walkAll(OUT).filter(
+const uncompressed = walk(OUT).filter(
   (f) =>
     /\.(html|js|mjs|css|svg|json|xml|txt)$/.test(f) &&
     fs.statSync(f).size >= MIN_COMPRESS &&

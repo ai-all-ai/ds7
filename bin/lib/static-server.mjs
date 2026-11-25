@@ -41,9 +41,8 @@ export async function serve(dir) {
   return { base: `http://localhost:${server.address().port}`, close: () => server.close() };
 }
 
-// Public routes of the build ("/", "/about/"); the developer pages /ui and /ds are left out.
-const INTERNAL = /(^|\/)(owner|ds|ui)\/?$/;
-export function routesOf(dir) {
+// Public routes of the build ("/", "/about/"), without the pages isInternal accepts (see internalRoutes in config.mjs).
+export function routesOf(dir, isInternal = () => false) {
   const list = [];
   const walk = (d) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
@@ -56,6 +55,6 @@ export function routesOf(dir) {
   walk(dir);
   return list
     .map((r) => (r === '/.' || r === '/' ? '/' : r + '/'))
-    .filter((r) => !INTERNAL.test(r))
+    .filter((r) => !isInternal(r))
     .sort();
 }

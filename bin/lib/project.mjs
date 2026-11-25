@@ -27,6 +27,19 @@ const walk = (dir, rel = '') =>
           ? walk(dir, path.posix.join(rel, e.name))
           : [path.posix.join(rel, e.name)],
     );
+// True when git ignores the path: such files are local only (intake folders, private tools) and never exist in CI. Without git, nothing is ignored.
+const ignoredCache = new Map();
+export function isIgnored(rel) {
+  if (!ignoredCache.has(rel)) {
+    let hit = false;
+    try {
+      execFileSync('git', ['check-ignore', '-q', '--', rel], { cwd: ROOT, stdio: 'ignore' });
+      hit = true;
+    } catch {}
+    ignoredCache.set(rel, hit);
+  }
+  return ignoredCache.get(rel);
+}
 export function listFiles() {
   try {
     const out = execFileSync('git', ['ls-files', '-co', '--exclude-standard', '-z'], {
@@ -35,9 +48,12 @@ export function listFiles() {
       maxBuffer: 64 * 1024 * 1024,
       stdio: ['ignore', 'pipe', 'ignore'],
     });
+    // a fresh project may not ignore node_modules yet: dependency and build folders are never project files
     return out
       .split('\0')
-      .filter((f) => f && fs.existsSync(path.join(ROOT, f)))
+      .filter(
+        (f) => f && !f.split('/').some((s) => SKIP.has(s)) && fs.existsSync(path.join(ROOT, f)),
+      )
       .sort();
   } catch {
     return walk(ROOT).sort();

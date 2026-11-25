@@ -5,12 +5,14 @@
 // pack of AI-ALL (@ai.all/aiall). The agent entrypoints and the root ALL.md
 // belong to AI-ALL; this CLI never writes them.
 //
-// Usage: npx @ai.all/ds7 [init|sync|update|guard|images|--version|--help]
+// Usage: npx @ai.all/ds7 [command]; `npx @ai.all/ds7 --help` lists the commands.
 //
 // Ownership:
 //   ds7/**                 the standard, vendored; overwritten by `update`
 //   ds7/aiall-pack.json    pack manifest, generated from this version; overwritten by `update`
 //   ds7/VERSION            installed version; written by `init` and `update`
+//   ds7/FILES              checksums of the shipped files, so `update` can keep local edits
+//   ds7/local/**           the project's own notes and patches; never overwritten
 //   ALL.md (project root)  AI-ALL routing file; its packs block is managed by AI-ALL,
 //                          the text outside that block is the project's own
 
@@ -55,7 +57,7 @@ const DS7_DIRS = [
   'templates',
 ];
 // Root-level documents of the standard (copied into ds7/).
-const DS7_FILES = ['README.md', 'SPEC.md', 'ALL.md', 'CHANGELOG.md'];
+const DS7_FILES = ['README.md', 'SPEC.md', 'ALL.md', 'CONFIG.md', 'CHANGELOG.md'];
 
 // Collect every file under a folder of the package, as paths relative to PKG.
 function listFiles(relDir) {
@@ -211,6 +213,118 @@ function writeVersion() {
   fs.writeFileSync(path.join(DS7, 'VERSION'), `${version}\n`);
 }
 
+// ---- local edits to the vendored standard
+// ds7/FILES lists the checksum of every file as the package shipped it. `ds7 update` uses it to tell a file the project edited
+// from one it never touched: an edit that no patch in ds7/local/patches carries is saved to ds7/local/edited/ before the file is
+// replaced, and the patches are applied again afterwards. `ds7 patch <file>` turns an edit into such a patch.
+const FILES_LIST = path.join(DS7, 'FILES');
+const PATCH_DIR = path.join(DS7, 'local', 'patches');
+const sha = (buf) => require('crypto').createHash('sha256').update(buf).digest('hex').slice(0, 16);
+const relInDs7 = (dest) => path.relative(DS7, dest).split(path.sep).join('/');
+
+function readFilesList() {
+  if (!fs.existsSync(FILES_LIST)) return null;
+  const map = new Map();
+  for (const line of fs.readFileSync(FILES_LIST, 'utf8').split('\n')) {
+    const m = line.match(/^([0-9a-f]+) {2}(.+)$/);
+    if (m) map.set(m[2], m[1]);
+  }
+  return map;
+}
+function writeFilesList() {
+  const lines = standardFiles()
+    .map(([rel, dest]) => `${sha(fs.readFileSync(path.join(PKG, rel)))}  ${relInDs7(dest)}`)
+    .sort((a, b) => a.slice(18).localeCompare(b.slice(18)));
+  fs.writeFileSync(
+    FILES_LIST,
+    `# Checksums of the files of DS7 ${version} as shipped; ds7 update reads them to keep local edits. Do not edit.\n${lines.join('\n')}\n`,
+  );
+}
+const patches = () =>
+  fs.existsSync(PATCH_DIR)
+    ? fs
+        .readdirSync(PATCH_DIR)
+        .filter((f) => f.endsWith('.patch'))
+        .sort()
+    : [];
+// the vendored files a patch changes (its "+++ b/ds7/<file>" lines)
+const patchedFiles = () =>
+  new Set(
+    patches().flatMap((f) =>
+      [...fs.readFileSync(path.join(PATCH_DIR, f), 'utf8').matchAll(/^\+\+\+ b\/ds7\/(\S+)/gm)].map(
+        (m) => m[1],
+      ),
+    ),
+  );
+function applyPatches() {
+  const failed = [];
+  const git = (...args) =>
+    require('child_process').spawnSync('git', args, { cwd: TARGET, encoding: 'utf8' });
+  for (const f of patches()) {
+    const file = path.join('ds7', 'local', 'patches', f);
+    // a plain apply first; a three-way merge (needs the file in the git index) when upstream moved the lines
+    let r = git('apply', '--whitespace=nowarn', file);
+    if (r.status !== 0) r = git('apply', '--3way', '--whitespace=nowarn', file);
+    if (r.status === 0) ok(`patch ${f} applied`);
+    else failed.push([f, (r.stderr || r.error?.message || '').trim().split('\n')[0]]);
+  }
+  return failed;
+}
+
+// `ds7 patch <file>`: the difference between the package copy of a vendored file and the project's edited one, as a patch
+function cmdPatch(args) {
+  const file = (args[0] || '').replace(/^ds7\//, '');
+  if (!file || !fs.existsSync(path.join(PKG, file)) || !fs.existsSync(path.join(DS7, file))) {
+    err(
+      'Usage: ds7 patch <file in ds7/>, for example: ds7 patch 02-design-system/NAMING-CONVENTIONS.md',
+    );
+    process.exitCode = 1;
+    return;
+  }
+  const r = require('child_process').spawnSync(
+    'git',
+    [
+      'diff',
+      '--no-index',
+      '--no-color',
+      `--src-prefix=a/ds7/`,
+      `--dst-prefix=b/ds7/`,
+      '--',
+      path.join(PKG, file),
+      path.join(DS7, file),
+    ],
+    { encoding: 'utf8' },
+  );
+  if (r.status === 0) return info(`ds7/${file} is the same as in the package: nothing to record`);
+  // git names both sides by their full paths: put the vendored path in both headers
+  const diff = r.stdout
+    .split('\n')
+    .map((l) =>
+      l.startsWith('diff --git')
+        ? `diff --git a/ds7/${file} b/ds7/${file}`
+        : l.startsWith('--- ')
+          ? `--- a/ds7/${file}`
+          : l.startsWith('+++ ')
+            ? `+++ b/ds7/${file}`
+            : l,
+    )
+    .join('\n');
+  fs.mkdirSync(PATCH_DIR, { recursive: true });
+  const existing = patches().find((f) =>
+    fs.readFileSync(path.join(PATCH_DIR, f), 'utf8').includes(`+++ b/ds7/${file}\n`),
+  );
+  const name =
+    existing ||
+    `${String(patches().length + 1).padStart(2, '0')}-${path
+      .basename(file)
+      .replace(/\.\w+$/, '')
+      .toLowerCase()}.patch`;
+  fs.writeFileSync(path.join(PATCH_DIR, name), diff);
+  ok(
+    `ds7/local/patches/${name} ${existing ? 'updated' : 'written'}; ds7 update applies it after every update`,
+  );
+}
+
 function runAiall(args) {
   let bin;
   try {
@@ -268,7 +382,7 @@ function legacyWarnings() {
   }
 }
 
-// Ensure .gitignore ignores local developer media intake
+// .gitignore: the local intake folders and temporary files
 function ensureGitignore() {
   const giPath = path.join(TARGET, '.gitignore');
   const entries = ['ds5/', '.ds5/', '*.tmp-pv'];
@@ -282,7 +396,7 @@ function ensureGitignore() {
   }
 }
 
-// Prompt interactive brand questionnaire when run in a TTY
+// The brand questions of `init`, asked only in a terminal (CI and --yes skip them)
 async function promptQuestionnaire() {
   if (!process.stdin.isTTY || process.argv.includes('--yes') || process.argv.includes('-y')) {
     return null;
@@ -312,7 +426,7 @@ async function promptQuestionnaire() {
   return { name, color, port, locales };
 }
 
-// Ensure docs/BRAND.md exists from templates, populated with questionnaire answers if available
+// docs/BRAND.md from the template, filled with the answers when there are any
 function ensureBrandSpec(answers) {
   const brandPath = path.join(TARGET, 'docs', 'BRAND.md');
   if (!fs.existsSync(brandPath)) {
@@ -364,7 +478,10 @@ function ensureProjectFiles() {
     ['templates/DECISIONS.md', 'docs/DECISIONS.md'],
     ['templates/METRICS.md', 'docs/METRICS.md'],
     ['templates/ds7.config.json', 'ds7.config.json'],
-    ['templates/workflows/ds7.yml', '.github/workflows/ds7.yml'],
+    ['templates/local/README.md', 'ds7/local/README.md'],
+    ['templates/local/RECURRING-RULES.md', 'ds7/local/RECURRING-RULES.md'],
+    // a project whose own workflow already runs the DS7 checks gets no second one
+    ...(ownCiRunsDs7() ? [] : [['templates/workflows/ds7.yml', '.github/workflows/ds7.yml']]),
     ...skills,
   ];
   const created = [];
@@ -418,7 +535,7 @@ function registerSkills(created) {
   ok(`ALL.md: ${rows.length} project skill(s) registered`);
 }
 
-// Ensure Makefile exists from templates
+// Makefile from the template, when the project has none
 function ensureMakefile() {
   const mkPath = path.join(TARGET, 'Makefile');
   if (!fs.existsSync(mkPath)) {
@@ -430,7 +547,7 @@ function ensureMakefile() {
   }
 }
 
-// Add helpful scripts to package.json if present
+// The DS7 npm scripts, added to package.json where missing
 function ensurePackageScripts() {
   const pkgPath = path.join(TARGET, 'package.json');
   if (!fs.existsSync(pkgPath)) return;
@@ -483,6 +600,7 @@ async function cmdInit() {
   for (const [rel, dest] of standardFiles()) copyOne(rel, dest, false);
   writePackManifest(false);
   writeVersion();
+  if (!fs.existsSync(FILES_LIST)) writeFilesList();
 
   console.log(`\n${C.yellow}Configuring AI-ALL…${C.reset}\n`);
   if (!runAiall(['init'])) {
@@ -535,9 +653,25 @@ function cmdUpdate() {
     process.exitCode = 1;
     return;
   }
+  // keep what the project changed in the vendored files
+  const known = readFilesList();
+  const carried = patchedFiles();
+  const saved = [];
+  if (known)
+    for (const [, dest] of standardFiles()) {
+      const rel = relInDs7(dest);
+      if (!fs.existsSync(dest) || !known.has(rel) || carried.has(rel)) continue;
+      if (sha(fs.readFileSync(dest)) === known.get(rel)) continue;
+      const copy = path.join(DS7, 'local', 'edited', rel);
+      fs.mkdirSync(path.dirname(copy), { recursive: true });
+      fs.copyFileSync(dest, copy);
+      saved.push(rel);
+    }
   for (const [rel, dest] of standardFiles()) copyOne(rel, dest, true);
   writePackManifest(true);
   writeVersion();
+  writeFilesList();
+  const failed = applyPatches();
 
   if (!runAiall(['sync'])) {
     err('Sync failed. Run: npx @ai.all/aiall sync');
@@ -554,29 +688,101 @@ function cmdUpdate() {
   ensureMakefile();
   ensurePackageScripts();
 
+  for (const rel of saved)
+    info(
+      `ds7/${rel} had a local edit that no patch carries: it is saved in ds7/local/edited/${rel}. Put the edit back and run ds7 patch ${rel}`,
+    );
+  for (const [f, why] of failed)
+    err(
+      `patch ${f} does not apply any more (${why}): upstream changed the same lines; edit by hand, then ds7 patch <file>`,
+    );
+  if (failed.length) process.exitCode = 1;
   console.log(
     `\n${C.green}Standard updated to v${version}. See ds7/CHANGELOG.md for what changed.${C.reset}`,
   );
   info('The root ALL.md outside the aiall packs block was not changed.\n');
 }
 
-// Core modifier and atomic layer validator
+// True when a workflow in .github/workflows (other than ds7.yml) already runs the DS7 checks
+function ownCiRunsDs7() {
+  const dir = path.join(TARGET, '.github', 'workflows');
+  if (!fs.existsSync(dir)) return false;
+  return fs
+    .readdirSync(dir)
+    .filter((f) => /\.ya?ml$/.test(f) && f !== 'ds7.yml')
+    .some((f) =>
+      /\bds7 check\b|npm run check(:strict)?\b/.test(fs.readFileSync(path.join(dir, f), 'utf8')),
+    );
+}
+
+// ds7.config.json of a project, or {} (a broken file is reported by Gate 5 and `ds7 doctor`)
+function userConfig(targetDir) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(targetDir, 'ds7.config.json'), 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+const GUARD_SUFFIXES = [
+  'active',
+  'big',
+  'small',
+  'large',
+  'orange',
+  'red',
+  'green',
+  'blue',
+  'dark',
+  'light',
+  'new',
+  'alt',
+  'v\\d',
+];
+
+// Settings of the guard, "guard" in ds7.config.json; every rule can be switched off.
+//  stateClasses   "allow" | "warn" (default) | "deny": what to do with is-* state classes (the standard is a dash modifier, .-active)
+//  allowClasses   class names never reported
+//  suffixes       words that make a class a baked-in modifier (card-big); [] turns that rule off
+//  dirs           folders searched for classes
+//  uiDir          the atoms folder; a component there must not use components of the other folders of its parent; false turns it off
+//  upperLayers    component name prefixes counted as upper layers; "auto" (default) = the other folders next to uiDir
+//  pageStyleLines most lines of <style> a page may hold (false = no limit); pageStyleSkip: page files left out
+function guardConfig(targetDir) {
+  const g = userConfig(targetDir).guard || {};
+  const state = g.stateClasses ?? 'warn';
+  return {
+    stateClasses: state === false ? 'allow' : state,
+    allowClasses: new Set(g.allowClasses ?? []),
+    suffixes: g.suffixes ?? GUARD_SUFFIXES,
+    dirs: g.dirs ?? ['app', 'src', 'components', 'pages'],
+    uiDir: g.uiDir === false ? null : (g.uiDir ?? 'app/components/ui'),
+    upperLayers: g.upperLayers ?? 'auto',
+    pagesDir: g.pagesDir ?? 'app/pages',
+    pageStyleLines: g.pageStyleLines === undefined ? 40 : g.pageStyleLines,
+    pageStyleSkip: g.pageStyleSkip ?? ['ui.vue', 'ds.vue'],
+  };
+}
+
+const pascal = (s) => s.replace(/(^|[-_])([a-z0-9])/g, (_, __, c) => c.toUpperCase());
+
+// Gate 1: baked-in modifier classes, atoms that use upper layers, pages that hold their own styles
 function runGuardChecks(targetDir) {
-  const BAD =
-    /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-(?:active|big|small|large|orange|red|green|blue|dark|light|new|alt|v\d)$/;
-  const ALLOW = new Set([
-    'is-active',
-    'btn-active',
-    'page-enter-active',
-    'page-leave-active',
-    'swap-enter-active',
-    'swap-leave-active',
-  ]);
+  const cfg = guardConfig(targetDir);
+  const BAD = cfg.suffixes.length
+    ? new RegExp(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-(?:${cfg.suffixes.join('|')})$`)
+    : null;
+  // framework classes: Vue transitions and the like
+  const FRAMEWORK = /-(?:enter|leave)(?:-from|-to|-active)?$/;
 
   const found = new Map();
-  const searchDirs = ['app', 'src', 'components', 'pages']
-    .map((d) => path.join(targetDir, d))
-    .filter((d) => fs.existsSync(d));
+  const states = new Map();
+  const note = (map, c, p) => {
+    const set = map.get(c) || new Set();
+    set.add(path.relative(TARGET, p));
+    map.set(c, set);
+  };
+  const searchDirs = cfg.dirs.map((d) => path.join(targetDir, d)).filter((d) => fs.existsSync(d));
   if (!searchDirs.length) searchDirs.push(targetDir);
 
   const walk = (d) => {
@@ -596,17 +802,10 @@ function runGuardChecks(targetDir) {
         for (const m of text.matchAll(/(?:class="([^"]*)"|\.([a-z][a-z0-9_-]*))/g)) {
           const classes = m[1] ? m[1].split(/\s+/) : [m[2]];
           for (const c of classes) {
-            if (
-              c &&
-              BAD.test(c) &&
-              !/^is-/.test(c) &&
-              !ALLOW.has(c) &&
-              !/-(?:enter|leave)-active$/.test(c)
-            ) {
-              const set = found.get(c) || new Set();
-              set.add(path.relative(TARGET, p));
-              found.set(c, set);
-            }
+            if (!c || cfg.allowClasses.has(c) || FRAMEWORK.test(c)) continue;
+            if (/^is-[a-z]/.test(c)) {
+              if (cfg.stateClasses !== 'allow') note(states, c, p);
+            } else if (BAD && BAD.test(c)) note(found, c, p);
           }
         }
       }
@@ -614,11 +813,9 @@ function runGuardChecks(targetDir) {
   };
 
   for (const d of searchDirs) walk(d);
+  // "deny": state classes count as baked-in modifiers; "warn": they are listed as advice
+  if (cfg.stateClasses === 'deny') for (const [c, f] of states) found.set(c, f);
 
-  // Atomic-design layer checks (components/ui must not use upper-layer components)
-  const layerIssues = [];
-  const UP =
-    /(?<=[\s>])<(Home|Sections|Site|Shop|Calc|Direction|Hook|Info|Maint|Blog|Legal|Layout)[A-Z]\w*/g;
   const findVues = (d) => {
     if (!fs.existsSync(d)) return [];
     return fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
@@ -627,41 +824,64 @@ function runGuardChecks(targetDir) {
     });
   };
 
-  const uiDir = path.join(targetDir, 'app', 'components', 'ui');
-  for (const f of findVues(uiDir)) {
-    const text = fs.readFileSync(f, 'utf8');
-    const matches = text.match(UP);
-    if (matches) {
-      layerIssues.push(
-        `ui → upper layer: ${path.relative(TARGET, f)} uses ${[...new Set(matches)].join(', ')}`,
-      );
+  // Atomic-design layer checks: atoms (uiDir) must not use components of the upper layers
+  const layerIssues = [];
+  if (cfg.uiDir) {
+    const uiDir = path.join(targetDir, cfg.uiDir);
+    const parent = path.dirname(uiDir);
+    const prefixes =
+      cfg.upperLayers === 'auto'
+        ? fs.existsSync(parent)
+          ? fs
+              .readdirSync(parent, { withFileTypes: true })
+              .filter((e) => e.isDirectory() && e.name !== path.basename(uiDir))
+              .map((e) => pascal(e.name))
+          : []
+        : cfg.upperLayers || [];
+    if (prefixes.length) {
+      const UP = new RegExp(`(?<=[\\s>])<(?:${prefixes.join('|')})[A-Z]\\w*`, 'g');
+      for (const f of findVues(uiDir)) {
+        const matches = fs.readFileSync(f, 'utf8').match(UP);
+        if (matches)
+          layerIssues.push(
+            `ui → upper layer: ${path.relative(TARGET, f)} uses ${[...new Set(matches.map((m) => m.slice(1)))].join(', ')}`,
+          );
+      }
     }
   }
 
-  // Page style lines check (pages should not accumulate > 40 lines of scoped CSS)
-  const pagesDir = path.join(targetDir, 'app', 'pages');
-  for (const f of findVues(pagesDir)) {
-    if (/ui\.vue$|ds\.vue$/.test(f)) continue;
-    const text = fs.readFileSync(f, 'utf8');
-    const styleMatch = text.match(/<style[^>]*>([\s\S]*?)<\/style>/);
-    const lines = styleMatch ? styleMatch[1].split('\n').length : 0;
-    if (lines > 40) {
-      layerIssues.push(
-        `page with ${lines} style lines (move to a component/molecule): ${path.relative(TARGET, f)}`,
-      );
+  // Page style lines: pages should not accumulate scoped CSS; it belongs in components
+  if (cfg.pageStyleLines !== false) {
+    for (const f of findVues(path.join(targetDir, cfg.pagesDir))) {
+      if (cfg.pageStyleSkip.includes(path.basename(f))) continue;
+      const styleMatch = fs.readFileSync(f, 'utf8').match(/<style[^>]*>([\s\S]*?)<\/style>/);
+      const lines = styleMatch ? styleMatch[1].split('\n').length : 0;
+      if (lines > cfg.pageStyleLines)
+        layerIssues.push(
+          `page with ${lines} style lines (move to a component/molecule): ${path.relative(TARGET, f)}`,
+        );
     }
   }
 
-  return { found, layerIssues };
+  return { found, layerIssues, stateAdvice: cfg.stateClasses === 'warn' ? states : new Map() };
 }
 
-// Built-in zero-dependency class name & atomic design guard validator
+// Advice, not a failure: is-* state classes while guard.stateClasses is "warn"
+function printStateAdvice(states) {
+  if (!states.size) return;
+  const list = [...states.keys()].sort();
+  info(
+    `${list.length} is-* state class(es) (${list.slice(0, 4).join(', ')}${list.length > 4 ? ', …' : ''}): the standard is a dash modifier (.-active). Set guard.stateClasses to "deny" to enforce, or "allow" to silence.`,
+  );
+}
+
+// `ds7 guard`: Gate 1 on its own, with every finding listed
 function cmdGuard() {
   const strict = process.argv.includes('--strict');
   const pathIdx = process.argv.indexOf('--path');
   const targetDir = pathIdx > -1 ? path.resolve(process.argv[pathIdx + 1]) : TARGET;
 
-  const { found, layerIssues } = runGuardChecks(targetDir);
+  const { found, layerIssues, stateAdvice } = runGuardChecks(targetDir);
 
   console.log(`\n${C.bold}DS7 Guard: Validating modifier classes and atomic layers…${C.reset}\n`);
 
@@ -671,6 +891,7 @@ function cmdGuard() {
     err(`${cls} (baked-in modifier) in: ${[...files].slice(0, 3).join(', ')}`);
   }
 
+  printStateAdvice(stateAdvice);
   const total = found.size + layerIssues.length;
   if (total === 0) {
     ok(`All checks passed. No modifier anti-patterns or layer violations found.\n`);
@@ -685,7 +906,7 @@ function cmdGuard() {
   }
 }
 
-// Validate token discipline: no raw hex or rgb/rgba colors in components/ui/
+// Gate 2: colours in components/ui come from tokens, never as hex or rgb() literals
 function validateRawColors(targetDir) {
   const issues = [];
   const uiDir = path.join(targetDir, 'app', 'components', 'ui');
@@ -726,68 +947,182 @@ function validateRawColors(targetDir) {
   return issues;
 }
 
-// Validate translation completeness across locales
+// Leaf key paths of the object literal a .ts/.js locale file exports. A small tokenizer, not a regex: words inside
+// strings, template literals and comments are never taken for keys, and a key written twice in one object is reported.
+function localeKeysOfSource(src) {
+  const keys = [];
+  const dups = [];
+  const start = src.search(/export\s+default\b/);
+  let i = src.indexOf('{', start < 0 ? 0 : start);
+  if (i < 0) return { keys, dups };
+  const path = [];
+  const seen = [new Set()];
+  const n = src.length;
+  const skipString = (q) => {
+    for (i++; i < n && src[i] !== q; i++) {
+      if (src[i] === '\\') i++;
+      else if (q === '`' && src[i] === '$' && src[i + 1] === '{') {
+        let depth = 0;
+        for (i++; i < n; i++) {
+          if (src[i] === '{') depth++;
+          else if (src[i] === '}' && --depth === 0) break;
+          else if (src[i] === "'" || src[i] === '"' || src[i] === '`') skipString(src[i]);
+        }
+      }
+    }
+  };
+  const skipComment = () => {
+    if (src[i + 1] === '/') while (i < n && src[i] !== '\n') i++;
+    else {
+      i = src.indexOf('*/', i + 2);
+      i = i < 0 ? n : i + 1;
+    }
+  };
+  // skip a value that is not an object literal: up to the , or } that ends it at this depth
+  const skipValue = () => {
+    let depth = 0;
+    for (; i < n; i++) {
+      const c = src[i];
+      if (c === "'" || c === '"' || c === '`') skipString(c);
+      else if (c === '/' && (src[i + 1] === '/' || src[i + 1] === '*')) skipComment();
+      else if (c === '(' || c === '[' || c === '{') depth++;
+      else if (c === ')' || c === ']' || c === '}') {
+        if (depth === 0) return;
+        depth--;
+      } else if (c === ',' && depth === 0) return;
+    }
+  };
+  i++; // into the root object
+  while (i < n) {
+    const c = src[i];
+    if (/\s|,/.test(c)) i++;
+    else if (c === '/' && (src[i + 1] === '/' || src[i + 1] === '*')) {
+      skipComment();
+      i++;
+    } else if (c === '}') {
+      if (!path.length) break;
+      path.pop();
+      seen.pop();
+      i++;
+    } else if (c === '.' && src.startsWith('...', i)) {
+      i += 3;
+      skipValue();
+    } else {
+      // a key: identifier, number or quoted string, then ':'
+      let key;
+      if (c === "'" || c === '"') {
+        const from = i;
+        skipString(c);
+        key = src.slice(from + 1, i);
+        i++;
+      } else {
+        const m = /^[A-Za-z0-9_$]+/.exec(src.slice(i, i + 200));
+        if (!m) {
+          i++;
+          continue;
+        }
+        key = m[0];
+        i += key.length;
+      }
+      while (i < n && /\s/.test(src[i])) i++;
+      if (src[i] !== ':') {
+        // shorthand property or method: nothing to compare
+        skipValue();
+        continue;
+      }
+      i++;
+      while (i < n && /\s/.test(src[i])) i++;
+      const full = [...path, key].join('.');
+      const here = seen[seen.length - 1];
+      if (here.has(key)) dups.push(full);
+      here.add(key);
+      if (src[i] === '{') {
+        path.push(key);
+        seen.push(new Set());
+        i++;
+      } else {
+        keys.push(full);
+        skipValue();
+      }
+    }
+  }
+  return { keys, dups };
+}
+
+// Locale files: i18n.dir in ds7.config.json, else i18n/locales, locales or app/locales. A locale is a file
+// (es.ts, en.json) or a folder of files (es/home.json → keys home.*).
+function readLocales(targetDir, cfg) {
+  const candidates = cfg.dir
+    ? [path.join(targetDir, cfg.dir)]
+    : ['i18n/locales', 'locales', 'app/locales'].map((d) => path.join(targetDir, d));
+  const locDir = candidates.find((d) => fs.existsSync(d));
+  if (!locDir) return null;
+  const isLocaleFile = (f) => /\.(json|ts|js|mjs)$/.test(f) && !/\.d\.ts$/.test(f);
+  const out = new Map();
+  const add = (loc, file, prefix) => {
+    const list = out.get(loc) || [];
+    list.push({ file, prefix });
+    out.set(loc, list);
+  };
+  for (const e of fs.readdirSync(locDir, { withFileTypes: true })) {
+    if (e.isDirectory()) {
+      for (const f of fs.readdirSync(path.join(locDir, e.name)).filter(isLocaleFile))
+        add(e.name, path.join(locDir, e.name, f), f.replace(/\.[^.]+$/, ''));
+    } else if (isLocaleFile(e.name))
+      add(e.name.replace(/\.[^.]+$/, ''), path.join(locDir, e.name), '');
+  }
+  for (const loc of cfg.ignore || []) out.delete(loc);
+  return out;
+}
+
+// Gate 3: every locale has the same keys. Settings: "i18n" in ds7.config.json,
+// { "check": false } turns the gate off, "dir" names the locale folder, "ignore" lists locales to leave out.
 function validateI18n(targetDir) {
   const issues = [];
-  const candidates = [
-    path.join(targetDir, 'i18n', 'locales'),
-    path.join(targetDir, 'locales'),
-    path.join(targetDir, 'app', 'locales'),
-  ];
-  const locDir = candidates.find((d) => fs.existsSync(d));
-  if (!locDir) return { localeCount: 0, issues };
-
-  const files = fs.readdirSync(locDir).filter((f) => /\.(json|ts|js)$/.test(f));
-  if (files.length <= 1) return { localeCount: files.length, issues };
+  const cfg = userConfig(targetDir).i18n || {};
+  if (cfg.check === false) return { localeCount: 0, issues, off: true };
+  const found = readLocales(targetDir, cfg);
+  if (!found || found.size === 0) return { localeCount: 0, issues };
 
   const localeKeys = new Map();
-
-  for (const f of files) {
-    const loc = path.basename(f).replace(/\.[^.]+$/, '');
-    const p = path.join(locDir, f);
-    const content = fs.readFileSync(p, 'utf8');
+  for (const [loc, files] of found) {
     const keys = new Set();
-
-    if (f.endsWith('.json')) {
-      try {
-        const obj = JSON.parse(content);
-        const extract = (o, prefix = '') => {
-          for (const [k, v] of Object.entries(o)) {
-            const full = prefix ? `${prefix}.${k}` : k;
-            if (v && typeof v === 'object' && !Array.isArray(v)) extract(v, full);
-            else {
-              keys.add(full);
-              if (typeof v === 'string' && !v.trim()) {
-                issues.push(`empty string in ${loc}: ${full}`);
+    for (const { file, prefix } of files) {
+      const content = fs.readFileSync(file, 'utf8');
+      const at = (k) => (prefix ? `${prefix}.${k}` : k);
+      if (file.endsWith('.json')) {
+        try {
+          const extract = (o, pre = '') => {
+            for (const [k, v] of Object.entries(o)) {
+              const full = pre ? `${pre}.${k}` : k;
+              if (v && typeof v === 'object' && !Array.isArray(v)) extract(v, full);
+              else {
+                keys.add(at(full));
+                if (typeof v === 'string' && !v.trim())
+                  issues.push(`empty string in ${loc}: ${at(full)}`);
               }
             }
-          }
-        };
-        extract(obj);
-      } catch (err) {
-        issues.push(`invalid JSON in ${path.relative(TARGET, p)}: ${err.message}`);
-      }
-    } else {
-      for (const m of content.matchAll(/['"]?([a-zA-Z0-9_.-]+)['"]?\s*:\s*(?:['"`]|\[|\{)/g)) {
-        if (!['export', 'default', 'import', 'const', 'let', 'var'].includes(m[1])) {
-          keys.add(m[1]);
+          };
+          extract(JSON.parse(content));
+        } catch (e) {
+          issues.push(`invalid JSON in ${path.relative(targetDir, file)}: ${e.message}`);
         }
+      } else {
+        const { keys: ks, dups } = localeKeysOfSource(content);
+        for (const k of ks) keys.add(at(k));
+        for (const d of dups)
+          issues.push(`key written twice in ${path.relative(targetDir, file)}: ${at(d)}`);
       }
     }
     localeKeys.set(loc, keys);
   }
 
   const locales = [...localeKeys.keys()];
-  for (let i = 0; i < locales.length; i++) {
-    for (let j = 0; j < locales.length; j++) {
-      if (i === j) continue;
-      const [l1, l2] = [locales[i], locales[j]];
-      const k1 = localeKeys.get(l1);
+  for (const l1 of locales) {
+    for (const l2 of locales) {
+      if (l1 === l2) continue;
       const k2 = localeKeys.get(l2);
-      const missing = [];
-      for (const k of k1) {
-        if (!k2.has(k)) missing.push(k);
-      }
+      const missing = [...localeKeys.get(l1)].filter((k) => !k2.has(k));
       if (missing.length) {
         issues.push(
           `missing in ${l2} (present in ${l1}): ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? ` (+${missing.length - 5} more)` : ''}`,
@@ -799,7 +1134,7 @@ function validateI18n(targetDir) {
   return { localeCount: locales.length, issues: [...new Set(issues)] };
 }
 
-// Validate repo hygiene: brand specification present, zero temp artifacts
+// Gate 4: the brand spec exists and no temporary files are left in the repository
 function validateRepoHygiene(targetDir) {
   const issues = [];
 
@@ -835,179 +1170,188 @@ function validateRepoHygiene(targetDir) {
   return issues;
 }
 
-// Comprehensive health check running all quality gates
+// `ds7 check`: the five quality gates. --strict exits 1 on any new issue; --json prints one object; ds7-baseline.json ("check")
+// holds accepted issues (--update-baseline writes it, --no-baseline ignores it). "check.gates" in ds7.config.json switches a gate
+// off by name: { "tokens": false } (names: guard, tokens, i18n, hygiene, layout).
 function cmdCheck() {
-  const strict = process.argv.includes('--strict');
-  const pathIdx = process.argv.indexOf('--path');
-  const targetDir = pathIdx > -1 ? path.resolve(process.argv[pathIdx + 1]) : TARGET;
+  const argv = process.argv;
+  const strict = argv.includes('--strict');
+  const json = argv.includes('--json');
+  const pathIdx = argv.indexOf('--path');
+  const targetDir = pathIdx > -1 ? path.resolve(argv[pathIdx + 1]) : TARGET;
+  const off = (userConfig(targetDir).check || {}).gates || {};
+  const gates = [];
+  const gate = (n, key, name, run) => {
+    if (off[key] === false)
+      return gates.push({
+        n,
+        key,
+        name,
+        off: true,
+        issues: [],
+        clean: 'Off (check.gates in ds7.config.json).',
+      });
+    gates.push({ n, key, name, ...run() });
+  };
 
-  console.log(`\n${C.bold}DS7 Health Check: Running all quality gates…${C.reset}\n`);
+  let stateAdvice = new Map();
+  gate(1, 'guard', 'Modifiers & Layers', () => {
+    const r = runGuardChecks(targetDir);
+    stateAdvice = r.stateAdvice;
+    return {
+      issues: [
+        ...r.layerIssues,
+        ...[...r.found]
+          .sort()
+          .map(([cls, files]) => `${cls} (baked-in modifier) in ${[...files].sort()[0]}`),
+      ],
+      clean: 'Clean. No modifier anti-patterns or layer violations.',
+    };
+  });
+  gate(2, 'tokens', 'Token Discipline', () => ({
+    issues: validateRawColors(targetDir),
+    clean: 'Clean. All UI component colors use design tokens.',
+  }));
+  gate(3, 'i18n', 'Internationalisation', () => {
+    const { localeCount, issues, off: i18nOff } = validateI18n(targetDir);
+    const clean = i18nOff
+      ? 'Off (i18n.check is false in ds7.config.json).'
+      : localeCount > 1
+        ? `Clean. ${localeCount} locales in parity.`
+        : localeCount === 1
+          ? 'Clean. One locale, nothing to compare yet.'
+          : 'No locale files found (skipped).';
+    return { issues, clean };
+  });
+  gate(4, 'hygiene', 'Repository Hygiene', () => ({
+    issues: validateRepoHygiene(targetDir),
+    clean: 'Clean. Brand spec present, no stray artifacts.',
+  }));
+  // Gate 5 runs `ds7 layout`, which keeps its own baseline: its new problems only count here
+  if (fs.existsSync(path.join(targetDir, 'ds7.config.json')))
+    gate(5, 'layout', 'Layout', () => {
+      const r = require('child_process').spawnSync(
+        process.execPath,
+        [path.join(__dirname, 'cmd', 'layout.mjs'), '--json'],
+        { cwd: targetDir, encoding: 'utf8' },
+      );
+      let issues = [];
+      try {
+        issues = JSON.parse(r.stdout)
+          .findings.filter((f) => !f.known)
+          .map((f) => `${f.where}: ${f.detail}`);
+      } catch {
+        issues = [`ds7 layout did not run: ${(r.stderr || r.stdout || '').trim().split('\n')[0]}`];
+      }
+      return {
+        issues,
+        clean: 'Clean. Every file is in its place and no import crosses a layer.',
+        ownBaseline: true,
+      };
+    });
 
-  // Gate 1: Modifier & Layer Guard
-  const { found: guardFound, layerIssues } = runGuardChecks(targetDir);
-  const guardCount = guardFound.size + layerIssues.length;
-  if (guardCount === 0) {
-    ok('Gate 1 (Modifiers & Layers): Clean. No modifier anti-patterns or layer violations.');
-  } else {
-    err(
-      `Gate 1 (Modifiers & Layers): Found ${guardFound.size} modifier class(es), ${layerIssues.length} layer issue(s).`,
-    );
-    for (const issue of layerIssues) console.log(`    ${C.dim}${issue}${C.reset}`);
-    for (const [cls, files] of [...guardFound].sort().slice(0, 5)) {
-      console.log(`    ${C.dim}${cls} in ${[...files].slice(0, 2).join(', ')}${C.reset}`);
-    }
-  }
-
-  // Gate 2: Raw Colors in UI Atoms
-  const rawColors = validateRawColors(targetDir);
-  if (rawColors.length === 0) {
-    ok('Gate 2 (Token Discipline): Clean. All UI component colors use design tokens.');
-  } else {
-    err(
-      `Gate 2 (Token Discipline): Found ${rawColors.length} raw color literal(s) in components/ui/.`,
-    );
-    for (const issue of rawColors.slice(0, 5)) console.log(`    ${C.dim}${issue}${C.reset}`);
-  }
-
-  // Gate 3: i18n Locales Parity
-  const { localeCount, issues: i18nIssues } = validateI18n(targetDir);
-  if (i18nIssues.length === 0) {
-    ok(
-      `Gate 3 (Internationalisation): Clean. ${localeCount ? `${localeCount} locales in parity.` : 'No locale files found (skipped).'}`,
-    );
-  } else {
-    err(`Gate 3 (Internationalisation): Found ${i18nIssues.length} translation parity issue(s).`);
-    for (const issue of i18nIssues.slice(0, 5)) console.log(`    ${C.dim}${issue}${C.reset}`);
-  }
-
-  // Gate 4: Repository Hygiene & Brand Spec
-  const hygieneIssues = validateRepoHygiene(targetDir);
-  if (hygieneIssues.length === 0) {
-    ok('Gate 4 (Repository Hygiene): Clean. Brand spec present, no stray artifacts.');
-  } else {
-    err(`Gate 4 (Repository Hygiene): Found ${hygieneIssues.length} hygiene issue(s).`);
-    for (const issue of hygieneIssues.slice(0, 5)) console.log(`    ${C.dim}${issue}${C.reset}`);
-  }
-
-  // Gate 5: Layout (only when the project has a ds7.config.json)
-  let layoutCount = 0;
-  if (fs.existsSync(path.join(targetDir, 'ds7.config.json'))) {
-    const r = require('child_process').spawnSync(
-      process.execPath,
-      [path.join(__dirname, 'cmd', 'layout.mjs')],
-      { cwd: targetDir, encoding: 'utf8' },
-    );
-    const lines = (r.stdout || '').split('\n').filter(Boolean);
-    layoutCount = Number((lines[0] || '').match(/(\d+) problems/)?.[1] ?? (r.status ? 1 : 0));
-    if (layoutCount === 0) {
-      ok('Gate 5 (Layout): Clean. Every file is in its place and no import crosses a layer.');
-    } else {
-      err(`Gate 5 (Layout): Found ${layoutCount} placement or layer problem(s).`);
-      for (const l of lines.slice(1, 6)) console.log(`    ${C.dim}${l.trim()}${C.reset}`);
-    }
-  }
-
-  const totalErrors =
-    guardCount + rawColors.length + i18nIssues.length + hygieneIssues.length + layoutCount;
-  if (totalErrors === 0) {
-    console.log(`\n${C.bold}${C.green}✓ All DS7 quality gates passed!${C.reset}\n`);
-  } else {
-    console.log(
-      `\n${C.bold}${C.yellow}Total: ${totalErrors} issue(s) detected across quality gates.${C.reset}`,
-    );
-    if (strict) {
-      console.log(`${C.red}Strict mode active: exiting with code 1.${C.reset}\n`);
-      process.exit(1);
-    } else {
-      console.log(`Fix the issues above before submitting pull requests or publishing.\n`);
-    }
-  }
-}
-
-// Built-in responsive images processor
-async function cmdImages() {
-  const checkOnly = process.argv.includes('--check');
-  let sharp;
+  // the baseline of accepted issues, shared with the other commands
+  const baseFile = path.join(targetDir, 'ds7-baseline.json');
+  let base = {};
   try {
-    sharp = require('sharp');
-  } catch {
-    try {
-      sharp = require(path.join(TARGET, 'node_modules', 'sharp'));
-    } catch {
-      err('sharp is required for image processing. Install with: npm i -D sharp');
-      process.exit(checkOnly ? 0 : 1);
-    }
+    if (fs.existsSync(baseFile)) base = JSON.parse(fs.readFileSync(baseFile, 'utf8'));
+  } catch (e) {
+    err(`ds7-baseline.json is not valid JSON: ${e.message}`);
+    process.exit(1);
   }
+  const keyOf = (g, i) => `Gate ${g.n} | ${i}`;
+  const all = gates.flatMap((g) => (g.ownBaseline ? [] : g.issues.map((i) => keyOf(g, i))));
+  if (argv.includes('--update-baseline')) {
+    if (!Object.keys(base).length)
+      base.note =
+        'Findings accepted for now. Fix them and run the command with --update-baseline to drop them; new findings still fail.';
+    if (all.length) base.check = [...new Set(all)].sort();
+    else delete base.check;
+    fs.writeFileSync(baseFile, JSON.stringify(base, null, 2) + '\n');
+    console.log(`check: baseline updated, ${all.length} known issue(s) in ds7-baseline.json`);
+    return;
+  }
+  const known = new Set(argv.includes('--no-baseline') ? [] : base.check || []);
+  for (const g of gates) {
+    g.known = g.issues.filter((i) => !g.ownBaseline && known.has(keyOf(g, i)));
+    g.issues = g.issues.filter((i) => g.ownBaseline || !known.has(keyOf(g, i)));
+  }
+  const fixed = [...known].filter((k) => !all.includes(k));
+  const total = gates.reduce((a, g) => a + g.issues.length, 0);
 
-  const imgRoot = path.join(TARGET, 'public', 'images');
-  if (!fs.existsSync(imgRoot)) {
-    info('public/images/ not found. Nothing to process.');
+  if (json) {
+    console.log(
+      JSON.stringify(
+        {
+          command: 'check',
+          problems: total,
+          known: gates.reduce((a, g) => a + g.known.length, 0),
+          fixed: fixed.length,
+          gates: gates.map((g) => ({
+            gate: g.n,
+            name: g.key,
+            off: !!g.off,
+            issues: g.issues,
+            known: g.known,
+          })),
+          advice: [...stateAdvice.keys()].sort().map((c) => `${c}: is-* state class`),
+        },
+        null,
+        2,
+      ),
+    );
+    if (strict && total) process.exit(1);
     return;
   }
 
-  const WIDTHS = [400, 800, 1200];
-  const MIN_WIDTH = 900;
-  const QUALITY = 72;
-  const VARIANT = /-(\d{3,4})\.webp$/;
-
-  const walk = (d) =>
-    fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
-      const p = path.join(d, e.name);
-      return e.isDirectory() ? walk(p) : [p];
-    });
-
-  const sources = walk(imgRoot).filter((f) => /\.(webp|jpe?g|png)$/i.test(f) && !VARIANT.test(f));
-  const manifest = {};
-  const stale = [];
-  let built = 0;
-
-  for (const file of sources) {
-    const meta = await sharp(file).metadata();
-    if (!meta.width || meta.width < MIN_WIDTH) continue;
-    const url = '/' + path.relative(path.join(TARGET, 'public'), file).split(path.sep).join('/');
-    const dir = path.dirname(file);
-    const stem = path.basename(file).replace(/\.\w+$/, '');
-    const made = [];
-
-    for (const w of WIDTHS) {
-      if (w >= meta.width) continue;
-      const out = path.join(dir, `${stem}-${w}.webp`);
-      made.push(w);
-      const fresh = fs.existsSync(out) && fs.statSync(out).mtimeMs >= fs.statSync(file).mtimeMs;
-      if (fresh) continue;
-      if (checkOnly) {
-        stale.push(out);
-        continue;
-      }
-      await sharp(file)
-        .resize({ width: w, withoutEnlargement: true })
-        .webp({ quality: QUALITY })
-        .toFile(out);
-      built++;
+  console.log(`\n${C.bold}DS7 Health Check: Running all quality gates…${C.reset}\n`);
+  for (const g of gates) {
+    const label = `Gate ${g.n} (${g.name})`;
+    const knownNote = g.known.length ? ` (${g.known.length} known)` : '';
+    if (!g.issues.length) ok(`${label}: ${g.clean}${knownNote}`);
+    else {
+      err(`${label}: Found ${g.issues.length} issue(s).${knownNote}`);
+      for (const i of g.issues.slice(0, 5)) console.log(`    ${C.dim}${i}${C.reset}`);
+      if (g.issues.length > 5)
+        console.log(`    ${C.dim}... ${g.issues.length - 5} more (--json lists all)${C.reset}`);
     }
-    if (made.length) manifest[url] = made;
+    if (g.n === 1) printStateAdvice(stateAdvice);
   }
-
-  const manifestPath = path.join(TARGET, 'app', 'data', 'image-variants.json');
-  if (!checkOnly && Object.keys(manifest).length) {
-    fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
-    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+  if (fixed.length)
+    info(
+      `baseline: ${fixed.length} known issue(s) no longer occur; run ds7 check --update-baseline to drop them`,
+    );
+  if (total === 0) {
+    console.log(`\n${C.bold}${C.green}✓ All DS7 quality gates passed!${C.reset}\n`);
+    return;
   }
-
-  if (checkOnly) {
-    if (stale.length) {
-      err(`${stale.length} responsive image variant(s) missing or stale.`);
-      process.exit(1);
-    } else {
-      ok('All responsive image variants are up to date.');
-    }
-  } else {
-    ok(`Processed ${built} image variant(s). Manifest updated.`);
+  console.log(
+    `\n${C.bold}${C.yellow}Total: ${total} issue(s) detected across quality gates.${C.reset}`,
+  );
+  if (strict) {
+    console.log(`${C.red}Strict mode active: exiting with code 1.${C.reset}\n`);
+    process.exit(1);
   }
+  console.log(`Fix the issues above, or accept them for now with ds7 check --update-baseline.\n`);
 }
 
 // Commands implemented as scripts in bin/cmd: they run in the project root and pass their arguments and exit code on.
-const SCRIPT_COMMANDS = ['graph', 'layout', 'docs', 'psi', 'lab', 'doctor'];
+const SCRIPT_COMMANDS = [
+  'graph',
+  'layout',
+  'docs',
+  'psi',
+  'lab',
+  'doctor',
+  'css',
+  'unused',
+  'console',
+  'images',
+  'pages',
+  'adopt',
+  'skills',
+  'hooks',
+];
 const AUDITS = ['html', 'seo', 'a11y', 'perf'];
 function runScript(name, args) {
   const r = require('child_process').spawnSync(
@@ -1071,13 +1415,21 @@ DS7 ${version}
   npx @ai.all/ds7 update    update ds7/ to this version and refresh the pack
   npx @ai.all/ds7 guard     check modifier class names and atomic layer rules (--strict)
   npx @ai.all/ds7 check     run all quality gates: guard, tokens, i18n, hygiene, layout (--strict)
-  npx @ai.all/ds7 images    generate responsive WebP image variants (--check)
+  npx @ai.all/ds7 images    responsive WebP variants (--check); "images optimize", "images strip", "images dupes"
   npx @ai.all/ds7 graph     generate docs/SITE-GRAPH.md; --check, --uses X, --of X, --css X, --budget N, --stats
   npx @ai.all/ds7 layout    check that files sit where the layout rules say and no import crosses a layer
   npx @ai.all/ds7 docs      check that what the docs mention (scripts, paths, links, sections, skills) exists
   npx @ai.all/ds7 audit     static checks over the build: html, seo, a11y, perf (name one to run one)
                             layout, docs and audit also take --json, --update-baseline and --no-baseline
   npx @ai.all/ds7 lab       LCP, CLS and blocking in a browser (--axe for accessibility); needs Playwright
+  npx @ai.all/ds7 css       dead classes and orphan stylesheets; "css diff [REV]" proves a CSS refactor changed no rule
+  npx @ai.all/ds7 unused    components, composables, data files and public assets nothing refers to
+  npx @ai.all/ds7 console   console errors, exceptions and failed requests of every page in a browser; needs Playwright
+  npx @ai.all/ds7 pages     GitHub Pages preset: asset() helper and a deploy workflow under the base path
+  npx @ai.all/ds7 adopt     which local tools/ scripts a ds7 command replaces (--write rewrites the npm scripts)
+  npx @ai.all/ds7 patch F   record a local edit of the vendored file ds7/F as a patch that update re-applies
+  npx @ai.all/ds7 skills    project skills; "skills link" links them into .claude/skills
+  npx @ai.all/ds7 hooks     installs the commit-msg hook that checks Conventional Commits
   npx @ai.all/ds7 doctor    where the project stands with DS7 and what to do next (--json)
   npx @ai.all/ds7 psi URL   PageSpeed Insights scores and field data for a live URL
   npx @ai.all/ds7 --version print the version
@@ -1091,10 +1443,11 @@ else if (cmd === 'sync') cmdSync();
 else if (cmd === 'update') cmdUpdate();
 else if (cmd === 'guard') cmdGuard();
 else if (cmd === 'check') cmdCheck();
-else if (cmd === 'images') cmdImages();
 else if (cmd === 'audit') cmdAudit(process.argv.slice(3));
+else if (cmd === 'patch') cmdPatch(process.argv.slice(3));
 else if (SCRIPT_COMMANDS.includes(cmd)) process.exit(runScript(cmd, process.argv.slice(3)));
-else if (!cmd || cmd === 'init') cmdInit();
+// a bare flag such as `npx ds7 --yes` means init with that flag
+else if (!cmd || cmd === 'init' || cmd === '--yes' || cmd === '-y') cmdInit();
 else {
   err(`Unknown command: ${cmd}`);
   cmdHelp();
