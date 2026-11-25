@@ -62,8 +62,10 @@ project-root/
 | Base component | short kebab-case | `.p-card`, `.btn`, `.field` |
 | Element | double underscore | `.p-card__title` |
 | Modifier | separate class with a leading dash | `.-top`, `.-compact`, `.-lg` |
-| State | `is-` prefix | `.is-open`, `.is-active` |
+| State | dash modifier, like any variant | `.menu.-open`, `.tab.-active` |
 | Page context | class on `<body>` | `body.page-home` |
+
+Older projects use `is-` state classes (`.is-open`). `guard.stateClasses` decides how `ds7 guard` treats them: `"warn"` (default) lists them as advice, `"deny"` fails, `"allow"` stays silent.
 
 ---
 
@@ -93,14 +95,15 @@ A change is done when these pass:
 
 1. Unit and composable tests.
 2. Type check.
-3. Locale parity: every key exists in every locale.
+3. Locale parity: every key path exists in every locale, no key written twice (Gate 3 of `ds7 check`).
 4. Asset references: every `/images/…` and `/fonts/…` path exists in `public/`.
 5. HTML check: valid markup on every generated page.
-6. Console check: no errors or warnings on load.
+6. Console check (`ds7 console`): no errors, warnings, hydration mismatches or failed requests on load.
 7. Accessibility: axe reports 0 violations at 390, 820 and 1440 px.
 8. Build: `nuxt generate` completes.
 9. Layout (`ds7 layout`, Gate 5 of `ds7 check` when `ds7.config.json` exists): every file in its place, no import across a layer. `ds7 graph --check`: the generated graph is current.
-10. Static audits over the build (`ds7 audit`): HTML, SEO, WCAG 2.2 (scriptable part) and performance budgets. `ds7 lab` and `ds7 psi` add browser and live measurements. `ds7 audit perf` also prints advice that does not fail yet: missing pre-compressed files, missing `404.html`.
+10. Code hygiene: no CSS rule without a class in the templates and no unused component or composable (`ds7 css`, `ds7 unused`); pictures optimised once, without hidden metadata or duplicates (`ds7 images`).
+11. Static audits over the build (`ds7 audit`): HTML, SEO, WCAG 2.2 (scriptable part) and performance budgets. `ds7 lab` and `ds7 psi` add browser and live measurements. `ds7 audit perf` also prints advice that does not fail yet: missing pre-compressed files, missing `404.html`.
 
 ---
 

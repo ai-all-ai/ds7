@@ -26,76 +26,122 @@ DS7 is a set of rules, templates and reference documents for fast, multilingual 
 
 ## Quick start
 
-**New project**
-
 ```bash
-npx @ai.all/ds7
+npm i -D @ai.all/ds7
+npx ds7            # install the standard; `npx ds7 --yes` skips the questions
+npx ds7 doctor     # where the project stands and what to do next
+npx ds7 check      # the five quality gates
 ```
 
-Then add your project's own values to the root `ALL.md`, below the packs block, and run `npx @ai.all/aiall check`.
+Then write your project's own values in the root `ALL.md`, below the packs block, and the settings of the commands in `ds7.config.json` ([CONFIG.md](CONFIG.md)).
 
-**Sync agent entrypoints only**
-
-```bash
-npx @ai.all/ds7 sync
-```
-
-**Update to the installed version**
-
-```bash
-npm i -D @ai.all/ds7@latest
-npx @ai.all/ds7 update
-```
+A project that already has its own scripts in `tools/` can see which ones a ds7 command replaces with `npx ds7 adopt`.
 
 ## Commands
 
+**Set up and keep up to date**
+
 | Command | What it does |
 |---|---|
-| `npx @ai.all/ds7` | Copy standard to `ds7/`, write `ds7/aiall-pack.json`, run `aiall init`, enable `ds7` pack, scaffold `docs/BRAND.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/METRICS.md`, `ds7.config.json`, starter skills in `.agents/skills/`, `Makefile`, and scripts |
-| `npx @ai.all/ds7 sync` | Run `aiall sync`; restores missing entrypoints, keeps existing files |
-| `npx @ai.all/ds7 update` | Overwrite `ds7/` and `ds7/aiall-pack.json` with this version, then run `aiall sync`. Project text in the root `ALL.md` is kept |
-| `npx @ai.all/ds7 guard` | Check modifier class names (`.-modifier`), atomic layer boundaries, and page style limits (`--strict`) |
-| `npx @ai.all/ds7 check` | Comprehensive health check: runs guard, token discipline (raw colors), i18n parity, hygiene, and (when `ds7.config.json` exists) layout (`--strict` for CI) |
-| `npx @ai.all/ds7 images` | Generate responsive WebP image variants (`--check` fails if variants missing) |
-| `npx @ai.all/ds7 graph` | Generate `docs/SITE-GRAPH.md`; `--check`, `--uses X`, `--of X`, `--css X`, `--budget N`, `--stats` |
-| `npx @ai.all/ds7 doctor` | Where the project stands with DS7 and what to do next (`--json`) |
-| `npx @ai.all/ds7 layout` | Check that files sit where the layout rules say and no import crosses a layer |
-| `npx @ai.all/ds7 docs` | Check that what the docs mention (scripts, paths, links, skills) exists |
-| `npx @ai.all/ds7 audit` | Static checks over the build: `html`, `seo`, `a11y`, `perf` (name one to run one). `perf` also prints advice that does not fail: missing pre-compressed files, missing `404.html` |
-| `npx @ai.all/ds7 lab` | LCP, CLS and blocking in a browser (`--axe` for accessibility); needs Playwright |
-| `npx @ai.all/ds7 psi <url>` | PageSpeed Insights scores and field data for a live URL |
-| `npx @ai.all/ds7 --version` | Print the version |
-| `npx @ai.all/ds7 --help` | Print usage |
+| `npx ds7` | Install: the standard in `ds7/`, the AI-ALL pack, `docs/` templates, `ds7.config.json`, starter skills, npm scripts and a CI workflow (none when your CI already runs the checks). Existing files are kept. |
+| `npx ds7 update` | Replace `ds7/` with this version. Local edits are kept: patches in `ds7/local/patches/` are applied again, and an edit without a patch is saved to `ds7/local/edited/`. |
+| `npx ds7 patch <file>` | Record an edit of a vendored file as a patch that every update applies again. |
+| `npx ds7 sync` | Restore the agent entrypoints (`aiall sync`). |
+| `npx ds7 doctor` | Where the project stands, what the settings switch off, which optional packages are installed, what to do next (`--json`). |
+| `npx ds7 adopt` | Which local `tools/` scripts a ds7 command replaces (`--write` rewrites the npm scripts that only call them). |
+| `npx ds7 skills link` | Link the skills of `.agents/skills` into `.claude/skills`. |
+| `npx ds7 hooks` | Install the commit-msg hook that checks Conventional Commits. |
+| `npx ds7 pages` | GitHub Pages under a base path: the `asset()` helper and a deploy workflow. |
+
+**Check the source**
+
+| Command | What it does |
+|---|---|
+| `npx ds7 check` | Gates 1 to 5: class names and layers, colour tokens, locale keys, repository hygiene, file layout. `--strict` fails on a new issue, `--json`, `--update-baseline`. |
+| `npx ds7 guard` | Gate 1 on its own, every finding listed. |
+| `npx ds7 layout` | Files sit where the layout rules say and no import crosses a layer. |
+| `npx ds7 graph` | The code map `docs/SITE-GRAPH.md`; ask it with `--uses X`, `--of /route`, `--css class`. |
+| `npx ds7 docs` | What the documents mention (scripts, paths, links, skills) exists. |
+| `npx ds7 css` | Dead classes and orphan stylesheets; repeated selectors and blocks as advice. `css diff [rev]` proves a CSS refactor changed no rule. |
+| `npx ds7 unused` | Components, exports, data files and public assets nothing refers to. |
+
+**Check the build** (after `npm run generate`)
+
+| Command | What it does |
+|---|---|
+| `npx ds7 audit` | `html`, `seo`, `a11y`, `perf` over `.output/public`; name one to run one. `audit html --base /repo/` proves no path leaves a base path. |
+| `npx ds7 console` | Console errors, exceptions and failed requests of every page in a browser. Needs Playwright. |
+| `npx ds7 lab` | LCP, CLS and blocking in a browser; `--axe` for accessibility. Needs Playwright. |
+| `npx ds7 psi <url>` | PageSpeed Insights scores and field data of a live URL. |
+
+**Images**
+
+| Command | What it does |
+|---|---|
+| `npx ds7 images` | Responsive WebP variants of the large pictures (`--check`). Needs sharp. |
+| `npx ds7 images optimize` | Re-encode each WebP once, recorded so it never runs twice (`--dry`, `--check`). Needs sharp. |
+| `npx ds7 images strip` | Remove hidden metadata (C2PA, EXIF, XMP, text chunks) without touching pixels (`--check`). |
+| `npx ds7 images dupes` | The same picture saved twice, also as a near copy. |
+
+Every checking command accepts `--json`, and `--update-baseline` to accept the findings of today in `ds7-baseline.json`: they are shown as known, new ones still fail. Every check can be configured or switched off in `ds7.config.json`; see [CONFIG.md](CONFIG.md).
 
 ## Files
 
 | File | Owner | `init` | `update` |
 |---|---|---|---|
-| `ds7/**` | the standard | copies, keeps existing | overwrites |
-| `ds7/aiall-pack.json` | the CLI, generated from its version | creates | overwrites |
-| `ds7/VERSION` | the CLI | writes | writes |
-| `ds7/local/**` | project documents for agents that extend the standard (playbooks, recurring rules) | not created | never written |
-| `docs/BRAND.md` | project brand intake | creates if missing | not changed |
-| `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/METRICS.md` | project documents (templates) | creates if missing | not changed |
+| `ds7/**` | the standard | copies, keeps existing | overwrites, then applies `ds7/local/patches/` |
+| `ds7/aiall-pack.json`, `ds7/VERSION`, `ds7/FILES` | the CLI | writes | writes |
+| `ds7/local/**` | the project: notes, recurring rules, patches | starter `README.md` and `RECURRING-RULES.md` | never written (except `edited/`, see above) |
+| `docs/BRAND.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/METRICS.md` | the project | creates if missing | not changed |
 | `docs/SITE-GRAPH.md` | generated by `ds7 graph` | creates if missing | not changed |
-| `ds7.config.json` | settings of the commands; its presence turns on the layout gate | creates if missing | not changed |
-| `.github/workflows/ds7.yml` | CI: gates, graph, docs, build and audits on every push | creates if missing | not changed |
-| `.agents/skills/*/SKILL.md` | starter project skills (`project-graph`, `add-language`, `seo-page`) | creates if missing | not changed |
+| `ds7.config.json` | settings of the commands; its presence turns on Gate 5 | creates if missing | not changed |
+| `ds7-baseline.json` | accepted findings, written by `--update-baseline` | not created | not changed |
+| `.github/workflows/ds7.yml` | CI: gates, graph, docs, build and audits | creates if missing and no workflow runs the checks | not changed |
+| `.agents/skills/*/SKILL.md` | starter skills: `project-rules`, `project-graph`, `seo-page`, `search-quality`, `code-audit`, `add-language` | creates if missing | not changed |
 | `Makefile` | project automation | creates if missing | not changed |
 | `ALL.md` (root) | AI-ALL; the text below the packs block is yours | created by AI-ALL | not changed by DS7 |
 | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, ... | AI-ALL | created by AI-ALL | not changed by DS7 |
 
-Put project values in the root `ALL.md`, below the AI-ALL packs block. Longer project documents go to `ds7/local/`, which DS7 never writes. Other edits to `ds7/` are lost on `update`; propose a change to the standard instead. `update` copies files and does not delete: a file removed from the standard stays in `ds7/` until you delete it (the CHANGELOG says when one is removed).
+`update` copies files and does not delete: a file removed from the standard stays in `ds7/` until you delete it (the CHANGELOG says when one is removed).
+
+## CI
+
+`init` writes `.github/workflows/ds7.yml`. A site can instead call the reusable workflow of this repository, which runs the checks, the build and the audits, and can deploy to GitHub Pages:
+
+```yaml
+jobs:
+  site:
+    uses: ai-all-ai/ds7/.github/workflows/site.yml@v2.5.0
+    with:
+      pages: true
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+```
+
+Inputs: `node-version` (default from `.nvmrc`), `check` (`check:strict`), `build` (`generate`), `audit` (`audit`, empty to skip), `pages` (`false`), `noindex` (`true`: the Pages copy is a preview closed to search engines).
 
 ## Git
 
 - Commit `ds7/`, `docs/BRAND.md`, the root `ALL.md` and the agent entrypoints (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, ...).
-- On `init`, DS7 ensures raw developer media folders (`ds5/`, `.ds5/`, `*.tmp-pv`) are added to `.gitignore`. Add project-specific rules for `node_modules/`, `.nuxt/`, `.output/`, `dist/`, logs, and `.env` files.
+- Commit `ds7/`: a `.gitignore` rule such as `/ds[0-9]*/` must not hide it (`ds7 doctor` warns). On `init`, DS7 adds the local intake folders (`ds5/`, `.ds5/`, `*.tmp-pv`) to `.gitignore`. Add project-specific rules for `node_modules/`, `.nuxt/`, `.output/`, `dist/`, logs, and `.env` files.
 - Never commit secrets. Keep them in a git-ignored `.env` or in the host's environment, and list only their names in `.env.example`. See `ds7/09-security-errors/SECURITY-AND-ERRORS.md`.
 
 ## Contributing and security
 
 Contribution rules: [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+
+## Upgrading to 2.5
+
+1. If you changed files under `ds7/`, record each edit first: `npx ds7 patch <file>`. An edit you forget is not lost: `update` saves it to `ds7/local/edited/`.
+2. `npm i -D @ai.all/ds7@2.5` and `npx ds7 update`.
+3. `npx ds7 doctor`: it lists what is missing and which settings are in use.
+4. `npx ds7 check`. Gate 3 now compares full key paths of TS locales and may find keys the old check missed. Add them, or record them with `npx ds7 check --update-baseline` and fix them later.
+5. `is-` state classes now show as advice. Keep them with `"guard": { "stateClasses": "allow" }`, or move to dash modifiers (`.menu.-open`) at your pace.
+6. Optional: `npx ds7 skills link`, `npx ds7 hooks`, and the reusable workflow from the CI section.
+
+Every setting and its off switch: [CONFIG.md](CONFIG.md). All changes: [CHANGELOG.md](CHANGELOG.md).
 
 ## Upgrading from DS7 1.x
 
@@ -131,7 +177,8 @@ A value that is not a token does not appear in a component. A pattern that is no
 | `08-token-optimization/` | Working efficiently with AI context |
 | `09-security-errors/` | Security headers, secrets, dependencies, 404 and 500 pages |
 | `10-operations/` | Real-user metrics, deployment and rollback, feature flags, content model, dependency policy, changesets |
-| `templates/` | Starter component, tokens, Nuxt config, visual regression test, project documents, `ds7.config.json`, starter skills, CI workflow, `Dockerfile` and `compose.yml`, server configurations (`nginx.conf`, `Caddyfile`) |
+| `CONFIG.md` | Every setting of `ds7.config.json`, its default and how to switch it off |
+| `templates/` | Starter component, tokens, Nuxt config, visual regression test, project documents, `ds7.config.json`, starter skills, CI and Pages workflows, `asset()` helper, commit-msg hook, `Dockerfile` and `compose.yml`, server configurations (`nginx.conf`, `Caddyfile`) |
 
 ## Release
 
