@@ -46,8 +46,8 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ inputs.node-version }}
           node-version-file: ${{ inputs.node-version == '' && '.nvmrc' || '' }}
@@ -73,15 +73,15 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ inputs.node-version }}
           node-version-file: ${{ inputs.node-version == '' && '.nvmrc' || '' }}
           cache: npm
       - run: npm ci
       - id: base
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Build under the base path
         run: npm run ${{ inputs.build }}
         env:
@@ -94,8 +94,8 @@ jobs:
           find .output/public -name '*.html' -exec sed -i 's#<head>#<head><meta name="robots" content="noindex, nofollow">#' {} +
           printf 'User-agent: *\nDisallow: /\n' > .output/public/robots.txt
           find .output/public \( -name '*.br' -o -name '*.gz' \) -delete
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: .output/public
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
