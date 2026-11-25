@@ -2,7 +2,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 /**
  * DS7 reference Nuxt 4 configuration.
- * Static generation, inlined critical CSS, one i18n hub.
+ * Static generation, inlined component CSS, pre-compressed output, one i18n hub.
  * Replace the placeholders in [brackets] with project values.
  */
 export default defineNuxtConfig({
@@ -17,8 +17,13 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
   },
 
+  // Critical CSS, see 03-performance-web-vitals/CRITICAL-CSS.md. This is the Nuxt 4 default, written out so the
+  // behaviour does not change silently with a framework update: component styles are inlined, global CSS is linked.
+  features: {
+    inlineStyles: (id?: string) => !!id && id.includes('.vue'),
+  },
+
   experimental: {
-    inlineSSRStyles: true, // critical CSS per page, see 03-performance-web-vitals/CRITICAL-CSS.md
     viewTransition: false,
   },
 
@@ -51,8 +56,12 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    // Pre-compressed .br and .gz next to every file, served by the web server without compressing on each request.
+    // See 03-performance-web-vitals/DELIVERY-AND-CACHING.md.
+    compressPublicAssets: { brotli: true, gzip: true },
     prerender: {
       crawlLinks: true,
+      failOnError: true, // a broken link or a failing page stops the build instead of shipping a 404
     },
   },
 

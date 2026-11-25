@@ -62,7 +62,7 @@ When configured with `sharp`, the media library server pipeline provides:
 
 1. **Asset Metadata & Aspect Ratio:** Reads natural dimensions (`naturalWidth` × `naturalHeight`) and file size to calculate layout ratios for zero CLS.
 2. **Boundary Flood-Fill Transparency:** Automatically removes solid-color background borders using Euclidean color tolerance without requiring third-party cloud APIs.
-3. **Responsive WebP/AVIF Generation:** Generates multi-resolution variants (`-400.webp`, `-800.webp`, `-1200.webp`) with quality 72.
+3. **Responsive WebP/AVIF Generation:** Generates multi-resolution variants (`-400.webp`, `-800.webp`, `-1200.webp`) with the settings of `ds7 images` (`07-testing/VALIDATORS-AND-GUARDS.md`, section 3).
 
 ---
 

@@ -111,7 +111,7 @@ A fixed set of tasks shows whether an agent follows these rules. Each task has a
 | # | Task given to the agent | Pass when |
 |---|---|---|
 | 1 | Add an atom with one modifier | The pattern has an ID and a `/ui` entry. The component uses tokens only (no raw hex or `rgb()`). A visual reference exists. |
-| 2 | Add one text string to a section | The key exists in every locale. `i18n-check --strict` passes. The component has no hard-coded text. |
+| 2 | Add one text string to a section | The key exists in every locale. `npx @ai.all/ds7 check --strict` passes. The component has no hard-coded text. |
 | 3 | Add one image | The image goes through `UiImg` with `width` and `height`. The file is in `public/`. The asset check passes. |
 | 4 | Add a page that shows a product grid | The page file has no inline card or grid. It uses section components. It has one `h1`. The 404 page is unchanged. |
 | 5 | Change one colour token | The brandbook references change in the same commit. The contrast gate still passes at 4.5:1 for body text. |

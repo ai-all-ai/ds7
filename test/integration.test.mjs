@@ -1,118 +1,125 @@
-// Integration test: pack DS7, install it into an empty project together with
-// @ai.all/aiall, then run the real CLIs. Set AIALL_TARBALL to test a local
-// AI-ALL build; otherwise the registry version pinned in package.json is used.
+// DS7 packed with `npm pack`, installed with AI-ALL into a project, as a user gets it. Each test starts from its own
+// copy of the installed project (the pack and install run once per file, a copy per test). Set AIALL_TARBALL to test a
+// local AI-ALL build instead of the registry version.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { installed, cli, has, read, put, edit, version } from './helpers.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const { version } = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
-const exec = (cmd, args, cwd) => {
-  const r = spawnSync(cmd, args, { cwd, encoding: 'utf8' });
-  assert.equal(r.status, 0, `${cmd} ${args.join(' ')} failed:\n${r.stdout}\n${r.stderr}`);
-  return r.stdout;
+const init = (t) => {
+  const p = installed(t);
+  const r = cli(p.dir, [], p.ds7);
+  assert.equal(r.status, 0, r.out);
+  return p;
 };
 
-test('DS7 installs as the ds7 pack of AI-ALL and stays consistent across update', () => {
-  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'ds7-integration-'));
-  try {
-    const packDir = path.join(work, 'pack');
-    const project = path.join(work, 'project');
-    fs.mkdirSync(packDir);
-    fs.mkdirSync(project);
+test('the pack manifest names the version and a document that exists for every directive', (t) => {
+  const { dir } = init(t);
+  const manifest = JSON.parse(read(dir, 'ds7/aiall-pack.json'));
+  assert.equal(manifest.name, '@ai.all/ds7');
+  assert.equal(manifest.version, version);
+  for (const d of manifest.directives)
+    assert.ok(has(dir, d.doc), `directive doc missing: ${d.doc}`);
+});
 
-    // 1. Pack DS7 and install it with AI-ALL into an empty project.
-    const [{ filename }] = JSON.parse(
-      exec('npm', ['pack', '--json', '--pack-destination', packDir], root),
-    );
-    const extra = process.env.AIALL_TARBALL ? [process.env.AIALL_TARBALL] : [];
-    exec('npm', ['init', '-y'], project);
-    exec(
-      'npm',
-      ['install', '--no-audit', '--no-fund', path.join(packDir, filename), ...extra],
-      project,
-    );
+test('the pack routes agents to the SEO checklist and the token strategy', (t) => {
+  const { dir } = init(t);
+  const docs = JSON.parse(read(dir, 'ds7/aiall-pack.json')).directives.map((d) => d.doc);
+  assert.ok(docs.some((d) => d.endsWith('04-seo-ai-optimization/SEO-CHECKLIST.md')));
+  assert.ok(docs.some((d) => d.endsWith('08-token-optimization/TOKEN-STRATEGY.md')));
+});
 
-    const ds7 = path.join(project, 'node_modules', '@ai.all', 'ds7', 'bin', 'ds7.js');
-    const aiall = path.join(project, 'node_modules', '@ai.all', 'aiall', 'bin', 'cli.js');
+test('init enables the ds7 pack and writes the version file', (t) => {
+  const { dir } = init(t);
+  assert.deepEqual(JSON.parse(read(dir, '.ai/aiall.json')).packs, [
+    'aiall-core',
+    'ds7/aiall-pack.json',
+  ]);
+  assert.equal(read(dir, 'ds7/VERSION').trim(), version);
+});
 
-    // 2. init vendors the standard, enables the pack and writes the root ALL.md.
-    exec(process.execPath, [ds7], project);
-    const manifest = JSON.parse(
-      fs.readFileSync(path.join(project, 'ds7', 'aiall-pack.json'), 'utf8'),
-    );
-    assert.equal(manifest.name, '@ai.all/ds7');
-    assert.equal(manifest.version, version);
-    for (const d of manifest.directives) {
-      assert.ok(fs.existsSync(path.join(project, d.doc)), `directive doc missing: ${d.doc}`);
-    }
-    const config = JSON.parse(fs.readFileSync(path.join(project, '.ai', 'aiall.json'), 'utf8'));
-    assert.deepEqual(config.packs, ['aiall-core', 'ds7/aiall-pack.json']);
-    assert.equal(fs.readFileSync(path.join(project, 'ds7', 'VERSION'), 'utf8').trim(), version);
-    assert.ok(
-      !fs.existsSync(path.join(project, 'ALL.project.md')),
-      'ALL.project.md must not be created',
-    );
-    assert.ok(
-      fs.existsSync(path.join(project, 'ds7', '09-security-errors', 'SECURITY-AND-ERRORS.md')),
-      'security baseline missing',
-    );
-    assert.ok(
-      fs.existsSync(path.join(project, 'ds7', '10-operations', 'DEPLOYMENT.md')),
-      'operations docs missing',
-    );
-    assert.ok(
-      fs.existsSync(path.join(project, 'docs', 'BRAND.md')),
-      'docs/BRAND.md must be scaffolded on init',
-    );
-    assert.ok(fs.existsSync(path.join(project, 'Makefile')), 'Makefile must be scaffolded on init');
-    assert.ok(
-      fs.readFileSync(path.join(project, '.gitignore'), 'utf8').includes('ds5/'),
-      '.gitignore must contain ds5/ media intake entry',
-    );
-    const pkgJson = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), 'utf8'));
-    assert.equal(pkgJson.scripts.guard, 'ds7 guard');
-    assert.equal(pkgJson.scripts['guard:strict'], 'ds7 guard --strict');
-    assert.equal(pkgJson.scripts.check, 'ds7 check');
-    assert.equal(pkgJson.scripts['check:strict'], 'ds7 check --strict');
-    exec(process.execPath, [ds7, 'guard', '--strict', '--path', project], project);
-    exec(process.execPath, [ds7, 'check', '--strict', '--path', project], project);
-    const rootAll = fs.readFileSync(path.join(project, 'ALL.md'), 'utf8');
-    assert.ok(rootAll.includes('<!-- aiall:begin packs -->'));
-    assert.ok(rootAll.includes('ds7/ALL.md'), 'root ALL.md must link to the ds7 rules');
-    exec(process.execPath, [aiall, 'check', '--path', project], project);
+test('init links the ds7 rules from the root ALL.md and AI-ALL accepts the result', (t) => {
+  const p = init(t);
+  const all = read(p.dir, 'ALL.md');
+  assert.ok(all.includes('<!-- aiall:begin packs -->') && all.includes('ds7/ALL.md'));
+  assert.equal(cli(p.dir, ['check', '--path', p.dir], p.aiall).status, 0);
+});
 
-    // 3. Running init again changes nothing: the pack is not listed twice.
-    const again = exec(process.execPath, [ds7], project);
-    assert.ok(again.includes('pack ds7/aiall-pack.json (exists, kept)'));
-    const config2 = JSON.parse(fs.readFileSync(path.join(project, '.ai', 'aiall.json'), 'utf8'));
-    assert.deepEqual(config2.packs, config.packs);
+test('init does not create ALL.project.md and does create the security and operations docs', (t) => {
+  const { dir } = init(t);
+  assert.ok(!has(dir, 'ALL.project.md'));
+  assert.ok(has(dir, 'ds7/09-security-errors/SECURITY-AND-ERRORS.md'));
+  assert.ok(has(dir, 'ds7/10-operations/DEPLOYMENT.md'));
+});
 
-    // 4. Project text outside the managed block survives update.
-    fs.writeFileSync(
-      path.join(project, 'ALL.md'),
-      `${rootAll}\n\n## Project values\n\nCUSTOM PROJECT TEXT\n`,
-    );
-    fs.writeFileSync(path.join(project, 'ds7', 'ALL.md'), 'stale standard');
-    exec(process.execPath, [ds7, 'update'], project);
-    assert.ok(
-      fs.readFileSync(path.join(project, 'ds7', 'ALL.md'), 'utf8').includes('DS7 Projects'),
-    );
-    assert.ok(
-      fs.readFileSync(path.join(project, 'ALL.md'), 'utf8').includes('CUSTOM PROJECT TEXT'),
-    );
-    exec(process.execPath, [aiall, 'check', '--path', project], project);
+test('guard and check pass on a fresh install', (t) => {
+  const p = init(t);
+  assert.equal(cli(p.dir, ['guard', '--strict', '--path', p.dir], p.ds7).status, 0);
+  assert.equal(cli(p.dir, ['check', '--strict', '--path', p.dir], p.ds7).status, 0);
+});
 
-    // 5. A DS7 1.x project gets a warning, and its files are left in place.
-    fs.writeFileSync(path.join(project, 'ALL.project.md'), '# old project file');
-    const legacy = exec(process.execPath, [ds7, 'update'], project);
-    assert.ok(legacy.includes('ALL.project.md is from DS7 1.x'));
-    assert.ok(fs.existsSync(path.join(project, 'ALL.project.md')));
-  } finally {
-    fs.rmSync(work, { recursive: true, force: true });
+test('init a second time does not list the pack twice', (t) => {
+  const p = init(t);
+  const before = read(p.dir, '.ai/aiall.json');
+  assert.ok(cli(p.dir, [], p.ds7).out.includes('pack ds7/aiall-pack.json (exists, kept)'));
+  assert.equal(read(p.dir, '.ai/aiall.json'), before);
+});
+
+test('update restores the standard and keeps project text outside the packs block', (t) => {
+  const p = init(t);
+  edit(p.dir, 'ALL.md', (s) => `${s}\n\n## Project values\n\nCUSTOM PROJECT TEXT\n`);
+  put(p.dir, 'ds7/ALL.md', 'stale standard');
+  assert.equal(cli(p.dir, ['update'], p.ds7).status, 0);
+  assert.ok(read(p.dir, 'ds7/ALL.md').includes('DS7 Projects'));
+  assert.ok(read(p.dir, 'ALL.md').includes('CUSTOM PROJECT TEXT'));
+  assert.equal(cli(p.dir, ['check', '--path', p.dir], p.aiall).status, 0);
+});
+
+test('update warns about a DS7 1.x ALL.project.md and leaves it in place', (t) => {
+  const p = init(t);
+  put(p.dir, 'ALL.project.md', '# old project file');
+  const r = cli(p.dir, ['update'], p.ds7);
+  assert.ok(r.out.includes('ALL.project.md is from DS7 1.x'));
+  assert.ok(has(p.dir, 'ALL.project.md'));
+});
+
+test('update on a project made by DS7 2.3 adds no files and keeps Gate 5 off', (t) => {
+  const p = init(t);
+  // what a 2.3 project looks like: none of the files that 2.4 init adds
+  for (const f of [
+    'ds7.config.json',
+    'docs/ARCHITECTURE.md',
+    'docs/DECISIONS.md',
+    'docs/METRICS.md',
+    'docs/SITE-GRAPH.md',
+    '.github/workflows/ds7.yml',
+  ])
+    fs.rmSync(path.join(p.dir, f), { force: true });
+  assert.equal(cli(p.dir, ['update'], p.ds7).status, 0);
+  assert.ok(!has(p.dir, 'ds7.config.json'), 'update must not create ds7.config.json');
+  const r = cli(p.dir, ['check', '--strict', '--path', p.dir], p.ds7);
+  assert.equal(r.status, 0, r.out);
+  assert.ok(!r.out.includes('Gate 5'), 'Gate 5 stays off without ds7.config.json');
+});
+
+test('the tarball ships the commands, the libraries and the templates', (t) => {
+  const { dir } = init(t);
+  for (const f of [
+    'bin/cmd/layout.mjs',
+    'bin/cmd/seo.mjs',
+    'bin/lib/config.mjs',
+    'templates/ds7.config.json',
+    'templates/skills/seo-page/SKILL.md',
+    'templates/workflows/ds7.yml',
+  ])
+    assert.ok(has(dir, `node_modules/@ai.all/ds7/${f}`), `${f} is in the package`);
+});
+
+test('docs, graph and doctor pass on a fresh install', (t) => {
+  const p = init(t);
+  for (const args of [['docs'], ['graph', '--check'], ['doctor']]) {
+    const r = cli(p.dir, args, p.ds7);
+    assert.equal(r.status, 0, `${args.join(' ')}: ${r.out}`);
   }
 });

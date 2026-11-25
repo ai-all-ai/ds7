@@ -20,6 +20,7 @@ Rules:
 - Introduce a Content Security Policy first as `Content-Security-Policy-Report-Only`. Read the violations for one release, fix them, then enforce.
 - Nuxt generates inline scripts for hydration. Allow them with hashes or nonces, or with a header module (for example `nuxt-security`). Check the module's options against the Nuxt version in use.
 - A change to any header is recorded in `docs/DECISIONS.md` with the date and the reason.
+- `templates/nginx.conf` and `templates/Caddyfile` set the baseline headers that are safe on every site. `Content-Security-Policy` and `Strict-Transport-Security` are present there as comments: enable them by the steps above.
 
 ## 2. Secrets
 
