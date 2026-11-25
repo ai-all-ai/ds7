@@ -13,6 +13,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         node: [18, 20, 22, 24]
+        # one Windows cell: paths, line ends and links behave differently there
+        include:
+          - os: windows-latest
+            node: 22
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

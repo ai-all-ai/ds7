@@ -1,17 +1,24 @@
 name: GitHub release
 
-# Creates or updates the GitHub Release for a version tag. The release notes are
-# the CHANGELOG.md section for that version. npm publishing is not part of this workflow.
+# For a version tag: the GitHub Release (notes from the CHANGELOG.md section of that version), then the npm package,
+# then the Homebrew formula.
+# - npm: trusted publishing with provenance, no token in the repository. Set it up once on npmjs.com (package settings,
+#   "Trusted publisher": this repository, workflow release.yml, environment npm). The environment "npm" can require an
+#   approval in the repository settings, so nothing is published without a click.
+# - Homebrew: a repository_dispatch to ai-all-ai/homebrew-tap, which updates its formula. Needs the secret TAP_DISPATCH_TOKEN
+#   (a fine-grained token with contents: write on the tap); without it the step is skipped.
 on:
   push:
     tags: ['v*']
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ github.ref_name }}
@@ -49,3 +56,40 @@ jobs:
           else
             gh release create "$TAG" --title "$title" --notes-file "$RUNNER_TEMP/notes.md" --verify-tag $prerelease
           fi
+
+  npm:
+    needs: release
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install --no-audit --no-fund
+      - run: npm run verify
+      - name: Publish with provenance
+        run: |
+          tag=latest
+          [[ "$GITHUB_REF_NAME" == *-* ]] && tag=next
+          npm publish --provenance --access public --tag "$tag"
+
+  homebrew:
+    needs: npm
+    if: ${{ !contains(github.ref_name, '-') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the tap to update the ds7 formula
+        env:
+          TOKEN: ${{ secrets.TAP_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then echo "TAP_DISPATCH_TOKEN is not set: the tap picks the version up on its own schedule"; exit 0; fi
+          curl -fsS -X POST https://api.github.com/repos/ai-all-ai/homebrew-tap/dispatches \
+            -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
+            -d "{\"event_type\":\"formula-update\",\"client_payload\":{\"formula\":\"ds7\",\"version\":\"${GITHUB_REF_NAME#v}\"}}"
