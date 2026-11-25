@@ -20,15 +20,20 @@ Preview and staging use the same build as production. Only the environment varia
 
 ### Containerized Deployment (Docker)
 For environments requiring containerized execution, DS7 provides multi-stage starter files (`templates/Dockerfile` and `templates/compose.yml`):
-- **Stage 1 (Builder):** Uses `node:22-alpine` to compile dependencies and run prerendering.
-- **Stage 2 (Runner):** Lightweight `nginx:alpine` serving static output with minimal memory footprint (< 25 MB).
+- **Stage 1 (Builder):** Uses `node:22-alpine` to install dependencies and run `npm run generate`. Only `generate` is accepted, and the stage checks that `index.html` exists: a failed generation fails the image build instead of shipping an image without pages.
+- **Stage 2 (Runner):** `nginx:alpine` with `ds7/templates/nginx.conf`: pre-compressed files, the site's `404.html` with status 404, cache and security headers (`03-performance-web-vitals/DELIVERY-AND-CACHING.md`).
 - **Run command:** `docker compose up -d` mapping the project's port specified in `docs/BRAND.md`.
+- Copy `templates/Dockerfile` and `templates/compose.yml` to the project root. The Dockerfile reads `nginx.conf` from the vendored `ds7/templates/`, so `ds7 update` keeps the server configuration current; a project that needs its own copies the file and changes the `COPY` line.
+
+### A server without Docker
+
+`templates/Caddyfile` serves the build with automatic HTTPS, HTTP/3 and the same headers. Deploy as in section 5.
 
 ## 3. Release checklist
 
 1. The CI checks are green: tests, format, axe, i18n parity, asset references.
 2. The staging URL works at 390, 820 and 1440 px. The 404 page and the three main flows are checked.
-3. Security headers are present on staging (see `09-security-errors/SECURITY-AND-ERRORS.md`).
+3. Security and cache headers are present on staging (see `09-security-errors/SECURITY-AND-ERRORS.md` and `03-performance-web-vitals/DELIVERY-AND-CACHING.md`, section 6).
 4. The CHANGELOG has a section for the release. Breaking content changes are listed.
 5. The owner approves the tag. Then the production deploy runs.
 
@@ -42,6 +47,17 @@ For environments requiring containerized execution, DS7 provides multi-stage sta
 
 - Keep the last three production builds available on the host. Each build is named by its commit.
 - Rollback means: point production to the previous build. No code change is needed.
+- On a server of your own, switch builds atomically with a symbolic link, so visitors never see a half-copied site:
+
+```bash
+SITE=/var/www/example.com
+REL=$SITE/releases/$(git rev-parse --short HEAD)
+mkdir -p "$REL" && cp -R .output/public/. "$REL/"
+ln -sfn "$REL" "$SITE/current.tmp" && mv -Tf "$SITE/current.tmp" "$SITE/current"   # atomic switch (GNU mv)
+ls -1dt "$SITE"/releases/* | tail -n +4 | xargs -r rm -rf                         # keep three builds
+```
+
+  Rollback: `ln -sfn <previous release> "$SITE/current.tmp" && mv -Tf "$SITE/current.tmp" "$SITE/current"`. The web server's root points at `$SITE/current` (`templates/Caddyfile`).
 - Target: rollback in under 10 minutes. Rehearse it once per quarter on staging.
 - A rollback is recorded in `docs/DECISIONS.md` with the reason and the commit that was removed.
 - Do not roll back database or form data. Fix the content or the code forward.

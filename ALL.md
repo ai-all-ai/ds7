@@ -5,10 +5,10 @@
 
 > Single source of truth for every AI agent working in a DS7 project (Claude, Gemini, Codex, Copilot, Cursor, Windsurf, ChatGPT).
 > Read this file completely before changing anything. Other files in `ds7/` explain *why* a rule exists; this file says *what to do*.
-> Project-specific rules live in the root `ALL.md`, below the AI-ALL packs block (`<!-- aiall:begin packs -->` to `<!-- aiall:end packs -->`). AI-ALL keeps that text on sync. Where project rules and this file disagree, the project rules win for that project and the disagreement is recorded in `docs/DECISIONS.md`.
+> Project-specific rules live in the root `ALL.md`, below the AI-ALL packs block (`<!-- aiall:begin packs -->` to `<!-- aiall:end packs -->`). AI-ALL keeps that text on sync. Longer project documents for agents live in `ds7/local/`, which `ds7 update` never writes; the root `ALL.md` links to them. Where project rules and this file disagree, the project rules win for that project and the disagreement is recorded in `docs/DECISIONS.md`.
 > This file is the `ds7` pack of AI-ALL. The root `ALL.md` lists it in the packs block. Every entrypoint (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/*`, `.windsurf/rules/*`, `.github/copilot-instructions.md`) points to the root `ALL.md`. Sync them with `npx @ai.all/aiall sync`.
 
-**Version:** 2.3.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, Tailwind CSS v4, `@nuxtjs/i18n`, static generation.
+**Version:** 2.4.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, Tailwind CSS v4, `@nuxtjs/i18n`, static generation.
 
 ---
 
@@ -45,9 +45,10 @@ This approach is established practice, not an invention of DS7. Related referenc
 
 ## 1. Languages
 
-- **Code, comments, identifiers, commit messages, docs in `ds7/` and `docs/`:** English.
-- **Conversation with the project owner:** the owner's language (unless the owner says otherwise).
+- **Code, comments, identifiers, commit messages, docs in `ds7/` and `docs/`:** English. One language per file: never mix languages in code or comments.
+- **Conversation with the project owner:** the language the owner writes in. Detect it from the first message and keep it in every reply, summary, question and message to a sub-agent, unless the owner changes it. Chat language never leaks into files.
 - **Customer-facing text:** only through the i18n layer (`i18n/locales/`). Never hard-code a user-visible string in a component or page.
+- **A site in several languages:** finish one language version first (all pages, all strings in one locale file), then add the next one at a time. Parallel languages multiply tokens and review work. Procedure: `05-internationalization/I18N-ARCHITECTURE.md`, section 2b.
 - **Business data** (`app/data/`) is separate from UI strings (`i18n/`). Missing translations must fail the build.
 
 ---
@@ -108,6 +109,17 @@ Full rules: `03-performance-web-vitals/ASSETS-PIPELINE.md`, `03-performance-web-
 - **One preloaded font weight** on the first screen. Fallback font metrics (`size-adjust`, `ascent-override`, …) so swapping fonts moves nothing.
 - **Missing asset = build error.** Check every `/images/…` and `/fonts/…` reference against `public/` in the QA gate.
 
+## 5.1 Delivery
+
+Full rules: `03-performance-web-vitals/DELIVERY-AND-CACHING.md`.
+
+- **Pre-compressed build:** `nitro.compressPublicAssets` writes `.br` and `.gz` files during `nuxt generate`; the web server sends them as they are.
+- **Cache headers:** hashed files under `/_nuxt/` are `immutable` for a year, HTML is revalidated on every visit, other files in `public/` are cached for a week. A file in `public/` whose content changes gets a new name.
+- **Web server:** use `templates/nginx.conf` (Docker) or `templates/Caddyfile`. Both serve the 404 page with status 404 and the baseline security headers.
+- **A failed build never deploys:** `nitro.prerender.failOnError: true`, and no fallback build command.
+- **Opt-in only, one page group at a time, recorded in `docs/DECISIONS.md`:** inlining global CSS (`03-performance-web-vitals/CRITICAL-CSS.md`), pages without JavaScript, speculation rules (`prefetch`, never `prerender`).
+- **Third-party embeds** (video, maps, chat) load behind a facade, after a click and consent (`03-performance-web-vitals/HYDRATION-STRATEGY.md`, section 3).
+
 ---
 
 ## 6. Browser behaviour
@@ -126,7 +138,7 @@ Full rules: `03-performance-web-vitals/ASSETS-PIPELINE.md`, `03-performance-web-
 
 Full rules: `05-internationalization/I18N-ARCHITECTURE.md`.
 
-- One hub: the project's `i18n/locales/<code>.ts`. Every locale has the same keys. `i18n-check --strict` must pass.
+- One hub: the project's `i18n/locales/<code>.ts`. Every locale has the same keys. `npx @ai.all/ds7 check --strict` must pass.
 - Adding a language = one file plus one entry in the locale list. Nothing else changes.
 - Keys are grouped by component or section (`businessScreens.night.title`). No keys named after pixels or colours.
 
@@ -136,7 +148,7 @@ Full rules: `05-internationalization/I18N-ARCHITECTURE.md`.
 
 Full rules: `07-testing/TESTING-STRATEGY.md`.
 
-- **Target:** WCAG 2.2 AA. Axe reports **0 violations** at 390, 820 and 1440 px on every page.
+- **Target:** WCAG 2.2 AA. Axe reports **0 violations** at 390, 820 and 1440 px on every page. The scripted gate and the manual checklist: `04-seo-ai-optimization/SEO-CHECKLIST.md`, section 4.
 - **Text contrast:** at least 4.5:1 for body text, 3:1 for large text and UI borders.
 - **Every interactive element** is reachable by keyboard, has a visible focus style and a name.
 - **Icons-only buttons** have an accessible name. Decorative images have `alt=""`.
@@ -150,7 +162,8 @@ Full rules: `04-seo-ai-optimization/`.
 
 - Each page: one `<h1>`, a unique title and description, canonical URL, `hreflang` for every locale.
 - Explanatory sections open with a **direct answer block** (40–50 words, factual).
-- Structured data is a single `@graph` (`Organization`, `WebSite`, `Product`, `FAQPage`, `BreadcrumbList` as relevant).
+- Structured data is a single `@graph` (`Organization`, `WebSite`, `Product`, `BreadcrumbList` as relevant).
+- Page registry, per-page requirements, WCAG 2.2 and speed gates, and the order of work: `04-seo-ai-optimization/SEO-CHECKLIST.md`.
 - **Name, address and phone** in structured data match the business profile exactly. Use placeholders in the standard itself; never real contact data in `ds7/`.
 
 ---
@@ -216,11 +229,12 @@ The project keeps these files, and agents read them when a task needs them: `doc
 
 Full strategy: `08-token-optimization/TOKEN-STRATEGY.md`.
 
-1. Read `ALL.md`, then `docs/ARCHITECTURE.md` (the layer map), then only the files on the call chain of the task.
-2. Use the component IDs and the sandbox (`/ui`) instead of long descriptions.
-3. Put one-line file summaries at the top of non-trivial files.
-4. Do not re-read a file you just edited unless the edit tool failed.
-5. Do not start long processes in the background unless the task needs them.
+1. Read `ALL.md`, then `docs/ARCHITECTURE.md` (the layer map and where files live), then only the files on the call chain of the task.
+2. Ask the generated site graph instead of searching (`ds7 graph --uses X`). Details: `08-token-optimization/TOKEN-STRATEGY.md`, section 2.
+3. Use the component IDs and the sandbox (`/ui`) instead of long descriptions.
+4. Put one-line file summaries at the top of non-trivial files.
+5. Do not re-read a file you just edited unless the edit tool failed.
+6. Do not start long processes in the background unless the task needs them.
 
 ---
 
@@ -238,4 +252,4 @@ Full strategy: `08-token-optimization/TOKEN-STRATEGY.md`.
 | `SLD-01` | Card slider with scroll-snap | same |
 | `HOOK-01` | Overlap hook under the cover | same |
 
-**Before you finish any task, check:** no hard-coded UI text · no raw colours · no copied component · every image sized and routed through the image component · `npx @ai.all/ds7 check` clean · i18n keys in all locales · axe clean at 390 / 820 / 1440 · CHANGELOG line added · no junk left in the repo · security headers and the 404 page unchanged or documented.
+**Before you finish any task, check:** every file in its place (`ds7 layout`) · graph current (`ds7 graph --check`) · no hard-coded UI text · no raw colours · no copied component · every image sized and routed through the image component · `npx @ai.all/ds7 check` clean · i18n keys in all locales · axe clean at 390 / 820 / 1440 · CHANGELOG line added · no junk left in the repo · security and cache headers and the 404 page unchanged or documented · no new advice lines from `ds7 audit perf`.

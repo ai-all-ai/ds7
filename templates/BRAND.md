@@ -12,7 +12,7 @@
 - **Primary Audience:** B2C homeowners / luxury bike enthusiasts / corporate B2B
 - **Geographic Focus:** Seville, Andalusia, Spain (or global)
 - **Languages:** Primary: `es` · Secondary: `en`
-- **Dev Server Port:** `3000` (default) or dedicated port (e.g. `4500` for `velo.es` to avoid collision)
+- **Dev Server Port:** `3000` (default) or dedicated port (e.g. `4500`, to avoid a collision with another project)
 - **Local Dev URL:** `http://localhost:<port>` (e.g. `http://localhost:4500`)
 - **Quick Commands:** `make dev` (start dev server), `make guard` (verify modifiers & atomic layers)
 
@@ -37,7 +37,7 @@ Map brand colors to CSS custom properties in `theme.css`:
 
 - **Display / Headings Font:** e.g. `Noto Serif Display` (serif, elegant) or `Montserrat` (bold, modern)
 - **Body / Prose Font:** e.g. `Noto Sans` or system font stack
-- **Loading Method:** `@fontsource/*` packages or self-hosted `.woff2` in `public/fonts/`
+- **Loading Method:** `@fontsource/*` packages or self-hosted `.woff2` files served from the static assets folder
 
 ---
 

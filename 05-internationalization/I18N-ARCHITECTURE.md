@@ -47,6 +47,14 @@ Routes, language switcher, `hreflang` and sitemap entries for the new language a
 
 ---
 
+## 2b. Order of work: one language first
+
+Build the site in one source language and write every string in its locale file. Settle that text. Then add one language at a time with the steps of section 2.
+
+Translating while the source text changes means translating twice, and several languages written in parallel multiply the tokens spent and the review work for the same result. The project skill `add-language` (template in `templates/skills/`) carries the procedure for agents, including the access layer and the search markup (`hreflang`).
+
+---
+
 ## 3. Keys
 
 - Grouped by component or section: `businessScreens.night.title`.

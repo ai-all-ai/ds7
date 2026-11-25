@@ -1,0 +1,59 @@
+# DS7 static site on Caddy 2.6 or later: HTTPS certificates, HTTP/2 and HTTP/3 are automatic.
+# Serves the output of `nuxt generate` (deployed to /var/www/<site>/current, see 10-operations/DEPLOYMENT.md section 5).
+# Rules and reasons: ds7/03-performance-web-vitals/DELIVERY-AND-CACHING.md and ds7/09-security-errors/SECURITY-AND-ERRORS.md.
+# Replace [example.com] and the root path.
+
+# Baseline security headers, used for normal responses and for the 404 page.
+(ds7_security) {
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		X-Frame-Options "DENY"
+		-Server
+		# Enable after the steps in SECURITY-AND-ERRORS.md section 1:
+		# Content-Security-Policy "default-src 'self'; ..."
+		# Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+}
+
+[example.com] {
+	root * /var/www/[example.com]/current
+	import ds7_security
+
+	# Pre-compressed .br and .gz files from nitro.compressPublicAssets; on-the-fly compression for anything else.
+	encode zstd gzip
+	file_server {
+		precompressed br gzip
+	}
+	try_files {path} {path}/index.html {path}.html
+
+	# Cache-Control per kind of file; the four matchers never overlap. Matched on the requested path,
+	# so /about (served from about/index.html) is a page.
+	@hashed path /_nuxt/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	@media {
+		path *.avif *.webp *.jpg *.jpeg *.png *.gif *.svg *.ico *.woff2
+		not path /_nuxt/*
+	}
+	header @media Cache-Control "public, max-age=604800, stale-while-revalidate=86400"
+	@files {
+		path *.txt *.xml *.json *.webmanifest *.js *.css *.map
+		not path /_nuxt/*
+	}
+	header @files Cache-Control "public, max-age=3600"
+	@page not path /_nuxt/* *.avif *.webp *.jpg *.jpeg *.png *.gif *.svg *.ico *.woff2 *.txt *.xml *.json *.webmanifest *.js *.css *.map
+	header @page Cache-Control "public, max-age=0, must-revalidate"
+
+	# Unknown routes get the site's own 404 page with status 404.
+	# The matcher form works on Caddy 2.6 (Debian and Ubuntu packages) as well as on current releases.
+	handle_errors {
+		@notfound expression {err.status_code} == 404
+		handle @notfound {
+			import ds7_security
+			header Cache-Control "public, max-age=0, must-revalidate"
+			rewrite * /404.html
+			file_server
+		}
+	}
+}

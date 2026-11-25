@@ -26,17 +26,13 @@ Do not read all of `app/components/` or all of `app/data/`.
 
 ---
 
-## 2. Project graph
+## 2. Project graph (generated)
 
-Keep a short graph in `docs/ARCHITECTURE.md`, one line per dependency, so the agent can find callers without searching:
+Nuxt auto-imports components and composables, so the source does not show who uses what, and an agent ends up searching. `npx @ai.all/ds7 graph` writes the answer down:
 
-```
-pages/index.vue       → Hero, Systems, Equipment, Faq
-composables/usePageSeo → useHead, all pages
-data/catalog.ts       → ProductCard, Equipment
-```
-
-Update it when a dependency changes.
+- `docs/SITE-GRAPH.md` is generated. Never edit it by hand; `ds7 graph --check` fails when it is stale.
+- `--uses X`, `--of X` and `--css X` answer "who uses X", "what is X made of" and "where does this class live" in a few lines. The procedure is the project skill `project-graph`. A query costs a few lines; the file reads it replaces cost thousands of tokens. `--budget 1500` prints the most used files first within about that many tokens (the map to hand to a sub-agent with little room); `--stats` shows how large the map is next to the files it covers.
+- The placement table in `docs/ARCHITECTURE.md` (between the `placement` markers) is generated from the same rules that `ds7 layout` enforces, so it stays true. Edit the rest of that file by hand, for conventions only.
 
 ---
 
@@ -91,10 +87,17 @@ Each non-trivial file starts with one or two lines describing it. An agent can r
 
 ---
 
-## 6. Useful commands
+## 6. Parallel work
+
+Do not fan out to sub-agents for work where one finding shapes the next, nor for several locales or several pages of the same layout at once. Fan out only for independent reads. Language rules for agents and sub-agents: `ALL.md` section 1.
+
+---
+
+## 7. Useful commands
 
 ```bash
-grep -rl "useModal" app/ --include="*.vue"          # who uses a composable
+npx @ai.all/ds7 graph --uses useModal               # who uses a composable (instead of grep)
+npx @ai.all/ds7 graph --budget 1500                  # the most used files, about 1500 tokens
 npx vitest run path/to/file.test.ts --reporter=dot   # one test, minimal output
 git diff --name-only HEAD                            # what changed
 ```

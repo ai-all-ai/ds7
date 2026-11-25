@@ -16,6 +16,19 @@ Hydrate only what the visitor needs now.
 
 ## 2. Idle widgets
 
+Nuxt 4 delays hydration of lazy components natively. Prefer it to hand-written timers:
+
+```vue
+<template>
+  <LazySiteChat hydrate-on-idle />
+  <LazySiteCookieBanner hydrate-on-idle />
+</template>
+```
+
+The HTML is rendered during generation; the component's JavaScript loads and runs when the browser is idle.
+
+A widget that must not exist in the HTML at all (it reads browser storage, for example) renders on the client after idle:
+
 ```vue
 <script setup lang="ts">
 const ready = ref(false)
@@ -32,9 +45,7 @@ onMounted(() => {
 <template>
   <ClientOnly>
     <SiteChat v-if="ready" />
-    <SiteCookieBanner v-if="ready" />
   </ClientOnly>
-}
 </template>
 ```
 
@@ -47,8 +58,14 @@ Note for the banner: it must not hide content while it waits. Reserve its space 
 Heavy sections use lazy components that hydrate when they approach the viewport:
 
 ```vue
-<LazyHomeProjectMap hydrate-on-visible />
+<LazySectionsProjectMap hydrate-on-visible />
 ```
+
+Other strategies: `hydrate-on-interaction` (on the first click or focus), `hydrate-never` (static HTML only). Pick the latest one that still works for the visitor.
+
+### Third-party embeds: facades
+
+Video players, maps and chat widgets load a large amount of script from another origin. Show a facade instead: a component from the brandbook with a poster image, a title and a play or open button, sized like the real embed. The real embed loads only after the visitor activates the facade, and after consent where the embed sets cookies. `@nuxt/scripts` ships facades (`ScriptYouTubePlayer`, `ScriptGoogleMaps` and others) when the project uses it. `ds7 audit perf` reports every resource from another origin in the generated HTML (rule `third-party`).
 
 ---
 

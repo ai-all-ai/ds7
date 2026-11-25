@@ -70,6 +70,8 @@ Only publish a price that is current on the page. Update `priceValidUntil` when 
 
 ## 3. FAQ
 
+Google ended FAQ rich results in 2026, so `FAQPage` markup no longer earns a visual result in Google Search. Do not add it for that purpose. A visible question-and-answer section is still useful for people and for AI answers (see `AEO-GEO-AI-SEARCH.md`). If you still mark it up for other consumers, keep to this form:
+
 ```json
 {
   "@type": "FAQPage",

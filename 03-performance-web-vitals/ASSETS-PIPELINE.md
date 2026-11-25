@@ -21,7 +21,7 @@ Rules:
 
 Every raster image ships in several sizes. The reference component is `UiImg`: it takes a `src` string, builds a `srcset` from the generated variants, and writes `width`, `height` and lazy-loading attributes.
 
-Generated sizes (default): **400, 800 and 1200 px wide**, WebP, quality 82. Images smaller than 900 px are not resized up.
+Generated sizes: **400, 800 and 1200 px wide**, WebP. Quality and the other settings of the generator are documented once, in `07-testing/VALIDATORS-AND-GUARDS.md` (`ds7 images`).
 
 ```html
 <img

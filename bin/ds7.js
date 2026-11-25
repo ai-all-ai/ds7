@@ -144,10 +144,24 @@ function packManifest() {
         doc: doc('03-performance-web-vitals/MEDIA-LIBRARY-DS5.md'),
       },
       {
+        id: 'ds7.delivery',
+        title: 'Delivery and caching',
+        summary:
+          'Read before changing the web server, cache or compression settings, the Dockerfile, prerender options or a page-level opt-in (no JavaScript, speculation rules).',
+        doc: doc('03-performance-web-vitals/DELIVERY-AND-CACHING.md'),
+      },
+      {
         id: 'ds7.i18n',
         title: 'Internationalisation',
         summary: 'Read before adding a locale, a route or a translated string.',
         doc: doc('05-internationalization/I18N-ARCHITECTURE.md'),
+      },
+      {
+        id: 'ds7.seo',
+        title: 'SEO, accessibility and speed',
+        summary:
+          'Read before adding or changing a public page, its metadata, structured data or sitemap, and for any SEO, WCAG or PageSpeed task.',
+        doc: doc('04-seo-ai-optimization/SEO-CHECKLIST.md'),
       },
       {
         id: 'ds7.validators',
@@ -155,6 +169,13 @@ function packManifest() {
         summary:
           'Read before running quality checks: class-name guard, images pipeline, runtime checks.',
         doc: doc('07-testing/VALIDATORS-AND-GUARDS.md'),
+      },
+      {
+        id: 'ds7.tokens',
+        title: 'Token economy and orientation',
+        summary:
+          'Read at the start of a task: reading order, the generated site graph, where files live, language rules for agents.',
+        doc: doc('08-token-optimization/TOKEN-STRATEGY.md'),
       },
       {
         id: 'ds7.security',
@@ -332,6 +353,71 @@ function ensureBrandSpec(answers) {
   }
 }
 
+// Project files that DS7 itself requires (SPEC section 2) and the starter skills. Existing files are kept.
+function ensureProjectFiles() {
+  const skills = listFiles('templates/skills').map((rel) => [
+    rel,
+    path.join('.agents', 'skills', path.relative(path.join('templates', 'skills'), rel)),
+  ]);
+  const pairs = [
+    ['templates/ARCHITECTURE.md', 'docs/ARCHITECTURE.md'],
+    ['templates/DECISIONS.md', 'docs/DECISIONS.md'],
+    ['templates/METRICS.md', 'docs/METRICS.md'],
+    ['templates/ds7.config.json', 'ds7.config.json'],
+    ['templates/workflows/ds7.yml', '.github/workflows/ds7.yml'],
+    ...skills,
+  ];
+  const created = [];
+  for (const [rel, dest] of pairs) {
+    if (copyOne(rel, path.join(TARGET, dest), false) && /SKILL\.md$/.test(dest))
+      created.push([rel, dest.split(path.sep).join('/')]);
+  }
+  registerSkills(created);
+  // The generated code map, so the docs that point at it are true from the first day.
+  if (!fs.existsSync(path.join(TARGET, 'docs', 'SITE-GRAPH.md'))) runScript('graph', []);
+}
+
+// New starter skills are registered in the root ALL.md: in the "Project skills" table that AI-ALL writes, or in a section of their own.
+function registerSkills(created) {
+  const file = path.join(TARGET, 'ALL.md');
+  if (!created.length || !fs.existsSync(file)) return;
+  let text = fs.readFileSync(file, 'utf8');
+  const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  const rows = [];
+  for (const [rel, dest] of created) {
+    if (text.includes(dest)) continue;
+    const d =
+      (fs.readFileSync(path.join(PKG, rel), 'utf8').match(/^description:\s*(.+)$/m) || [])[1] || '';
+    const i = d.search(/\bUse\b/);
+    const purpose = (i > 0 ? d.slice(0, i) : d).trim() || 'Project skill';
+    const trigger =
+      i >= 0
+        ? cap(
+            d
+              .slice(i)
+              .replace(/^Use\s+/i, '')
+              .replace(/\.$/, ''),
+          )
+        : 'See the skill';
+    rows.push(`| ${trigger} | \`${dest}\` | ${purpose} |`);
+  }
+  if (!rows.length) return;
+  const placeholder = /^\| \(Add a trigger\)[^\n]*\n/m;
+  const section = /^## (?:\d+\. )?Project skills[\s\S]*?(?=\n## |\s*$)/m.exec(text);
+  if (placeholder.test(text)) {
+    text = text.replace(placeholder, `${rows.join('\n')}\n`);
+  } else if (section && /^\|/m.test(section[0])) {
+    const lines = section[0].split('\n');
+    const last = lines.map((l) => l.startsWith('|')).lastIndexOf(true);
+    lines.splice(last + 1, 0, ...rows);
+    text = text.replace(section[0], lines.join('\n'));
+  } else {
+    text = `${text.trimEnd()}\n\n## Project skills\n\n| Trigger | Skill | Purpose |\n| --- | --- | --- |\n${rows.join('\n')}\n`;
+  }
+  fs.writeFileSync(file, text);
+  ok(`ALL.md: ${rows.length} project skill(s) registered`);
+}
+
 // Ensure Makefile exists from templates
 function ensureMakefile() {
   const mkPath = path.join(TARGET, 'Makefile');
@@ -368,9 +454,23 @@ function ensurePackageScripts() {
       pkg.scripts['check:strict'] = 'ds7 check --strict';
       changed = true;
     }
+    for (const [name, cmd] of [
+      ['graph', 'ds7 graph'],
+      ['graph:check', 'ds7 graph --check'],
+      ['layout', 'ds7 layout'],
+      ['docs:check', 'ds7 docs'],
+      ['audit', 'ds7 audit'],
+    ]) {
+      if (!pkg.scripts[name]) {
+        pkg.scripts[name] = cmd;
+        changed = true;
+      }
+    }
     if (changed) {
       fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
-      ok('package.json scripts added: "guard", "guard:strict", "check", "check:strict"');
+      ok(
+        'package.json scripts added: "guard", "guard:strict", "check", "check:strict", "graph", "graph:check", "layout", "docs:check", "audit"',
+      );
     }
   } catch {}
 }
@@ -399,6 +499,7 @@ async function cmdInit() {
 
   ensureGitignore();
   ensureBrandSpec(answers);
+  ensureProjectFiles();
   ensureMakefile();
   ensurePackageScripts();
 
@@ -408,7 +509,10 @@ async function cmdInit() {
   );
   console.log(`  2. Add project-specific guidelines to root ${C.cyan}ALL.md${C.reset}.`);
   console.log(
-    `  3. Run ${C.cyan}npx @ai.all/ds7 check${C.reset} to verify quality gates (guard, tokens, i18n, hygiene).`,
+    `  3. Run ${C.cyan}npx @ai.all/ds7 check${C.reset} to verify quality gates (guard, tokens, i18n, hygiene, layout).`,
+  );
+  console.log(
+    `     Skills for agents are in ${C.cyan}.agents/skills/${C.reset}: register them in ALL.md section 3. Settings of the commands: ${C.cyan}ds7.config.json${C.reset}.`,
   );
   console.log(
     `  4. Run ${C.cyan}npx @ai.all/ds7 update${C.reset} to get new versions of the standard.\n`,
@@ -492,7 +596,13 @@ function runGuardChecks(targetDir) {
         for (const m of text.matchAll(/(?:class="([^"]*)"|\.([a-z][a-z0-9_-]*))/g)) {
           const classes = m[1] ? m[1].split(/\s+/) : [m[2]];
           for (const c of classes) {
-            if (c && BAD.test(c) && !ALLOW.has(c) && !/-(?:enter|leave)-active$/.test(c)) {
+            if (
+              c &&
+              BAD.test(c) &&
+              !/^is-/.test(c) &&
+              !ALLOW.has(c) &&
+              !/-(?:enter|leave)-active$/.test(c)
+            ) {
               const set = found.get(c) || new Set();
               set.add(path.relative(TARGET, p));
               found.set(c, set);
@@ -779,7 +889,26 @@ function cmdCheck() {
     for (const issue of hygieneIssues.slice(0, 5)) console.log(`    ${C.dim}${issue}${C.reset}`);
   }
 
-  const totalErrors = guardCount + rawColors.length + i18nIssues.length + hygieneIssues.length;
+  // Gate 5: Layout (only when the project has a ds7.config.json)
+  let layoutCount = 0;
+  if (fs.existsSync(path.join(targetDir, 'ds7.config.json'))) {
+    const r = require('child_process').spawnSync(
+      process.execPath,
+      [path.join(__dirname, 'cmd', 'layout.mjs')],
+      { cwd: targetDir, encoding: 'utf8' },
+    );
+    const lines = (r.stdout || '').split('\n').filter(Boolean);
+    layoutCount = Number((lines[0] || '').match(/(\d+) problems/)?.[1] ?? (r.status ? 1 : 0));
+    if (layoutCount === 0) {
+      ok('Gate 5 (Layout): Clean. Every file is in its place and no import crosses a layer.');
+    } else {
+      err(`Gate 5 (Layout): Found ${layoutCount} placement or layer problem(s).`);
+      for (const l of lines.slice(1, 6)) console.log(`    ${C.dim}${l.trim()}${C.reset}`);
+    }
+  }
+
+  const totalErrors =
+    guardCount + rawColors.length + i18nIssues.length + hygieneIssues.length + layoutCount;
   if (totalErrors === 0) {
     console.log(`\n${C.bold}${C.green}✓ All DS7 quality gates passed!${C.reset}\n`);
   } else {
@@ -877,6 +1006,62 @@ async function cmdImages() {
   }
 }
 
+// Commands implemented as scripts in bin/cmd: they run in the project root and pass their arguments and exit code on.
+const SCRIPT_COMMANDS = ['graph', 'layout', 'docs', 'psi', 'lab', 'doctor'];
+const AUDITS = ['html', 'seo', 'a11y', 'perf'];
+function runScript(name, args) {
+  const r = require('child_process').spawnSync(
+    process.execPath,
+    [path.join(__dirname, 'cmd', `${name}.mjs`), ...args],
+    {
+      cwd: TARGET,
+      stdio: 'inherit',
+    },
+  );
+  return r.status ?? 1;
+}
+// `ds7 audit [html|seo|a11y|perf]`: static checks over the generated site (.output/public); without a name all four run.
+function cmdAudit(args) {
+  const only = args[0] && !args[0].startsWith('--') ? args[0] : null;
+  if (only && !AUDITS.includes(only)) {
+    err(`Unknown audit: ${only} (html, seo, a11y, perf)`);
+    process.exit(1);
+  }
+  const rest = only ? args.slice(1) : args;
+  let failed = 0;
+  if (rest.includes('--json') && only) process.exit(runScript(only, rest)); // the audit's own JSON object
+  if (rest.includes('--json')) {
+    // one JSON document for all four audits
+    const audits = [];
+    for (const name of only ? [only] : AUDITS) {
+      const r = require('child_process').spawnSync(
+        process.execPath,
+        [path.join(__dirname, 'cmd', `${name}.mjs`), ...rest],
+        { cwd: TARGET, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
+      );
+      if (r.status !== 0) failed++;
+      try {
+        audits.push(JSON.parse(r.stdout));
+      } catch {
+        audits.push({ command: name, error: `${r.stdout}${r.stderr}`.trim() });
+      }
+    }
+    console.log(JSON.stringify({ audits, failed }, null, 2));
+    process.exit(failed ? 1 : 0);
+  }
+  for (const name of only ? [only] : AUDITS) {
+    console.log(`\n${C.bold}ds7 audit ${name}${C.reset}`);
+    if (runScript(name, rest) !== 0) failed++;
+  }
+  if (!only)
+    console.log(
+      failed
+        ? `\n${C.red}${failed} of ${AUDITS.length} audits failed.${C.reset}`
+        : `\n${C.green}All audits passed.${C.reset}`,
+    );
+  process.exit(failed ? 1 : 0);
+}
+
 function cmdHelp() {
   console.log(`
 DS7 ${version}
@@ -885,8 +1070,16 @@ DS7 ${version}
   npx @ai.all/ds7 sync      sync agent entrypoints (AI-ALL sync)
   npx @ai.all/ds7 update    update ds7/ to this version and refresh the pack
   npx @ai.all/ds7 guard     check modifier class names and atomic layer rules (--strict)
-  npx @ai.all/ds7 check     run all quality gates: guard, tokens, i18n, hygiene (--strict)
+  npx @ai.all/ds7 check     run all quality gates: guard, tokens, i18n, hygiene, layout (--strict)
   npx @ai.all/ds7 images    generate responsive WebP image variants (--check)
+  npx @ai.all/ds7 graph     generate docs/SITE-GRAPH.md; --check, --uses X, --of X, --css X, --budget N, --stats
+  npx @ai.all/ds7 layout    check that files sit where the layout rules say and no import crosses a layer
+  npx @ai.all/ds7 docs      check that what the docs mention (scripts, paths, links, sections, skills) exists
+  npx @ai.all/ds7 audit     static checks over the build: html, seo, a11y, perf (name one to run one)
+                            layout, docs and audit also take --json, --update-baseline and --no-baseline
+  npx @ai.all/ds7 lab       LCP, CLS and blocking in a browser (--axe for accessibility); needs Playwright
+  npx @ai.all/ds7 doctor    where the project stands with DS7 and what to do next (--json)
+  npx @ai.all/ds7 psi URL   PageSpeed Insights scores and field data for a live URL
   npx @ai.all/ds7 --version print the version
 `);
 }
@@ -899,6 +1092,8 @@ else if (cmd === 'update') cmdUpdate();
 else if (cmd === 'guard') cmdGuard();
 else if (cmd === 'check') cmdCheck();
 else if (cmd === 'images') cmdImages();
+else if (cmd === 'audit') cmdAudit(process.argv.slice(3));
+else if (SCRIPT_COMMANDS.includes(cmd)) process.exit(runScript(cmd, process.argv.slice(3)));
 else if (!cmd || cmd === 'init') cmdInit();
 else {
   err(`Unknown command: ${cmd}`);

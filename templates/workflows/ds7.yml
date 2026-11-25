@@ -1,0 +1,30 @@
+# DS7 checks on every push and pull request. Uses the npm scripts that `ds7` adds to package.json.
+# Self-hosted runners need Actions runner 2.327.1 or later for the v6 actions.
+# `generate` is the static build script of your project (Nuxt: `nuxt generate`). Delete this file if your CI lives elsewhere.
+name: DS7 checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Quality gates (guard, tokens, i18n, hygiene, layout)
+        run: npm run check:strict
+      - name: Generated site graph is current
+        run: npm run graph:check
+      - name: Documentation matches the repository
+        run: npm run docs:check
+      - name: Build
+        run: npm run generate
+      - name: Static audits (html, seo, a11y, perf)
+        run: npm run audit
