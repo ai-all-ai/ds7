@@ -355,6 +355,47 @@ function runAiall(args) {
   return r.status === 0;
 }
 
+// @ai.all/ui: the UI kit (tokens, base styles, components, the /ui brandbook). Same lookup as AI-ALL; `ui init` works in
+// the current folder, so it runs with the project as cwd. It writes app/assets/css/theme-base.css and base.css, keeps an
+// existing app/pages/ui.vue, and registers ui/aiall-pack.json in .ai/aiall.json.
+function runUi(args) {
+  let bin;
+  try {
+    bin = require.resolve('@ai.all/ui/bin/ui.js');
+  } catch {
+    const targetBin = path.join(TARGET, 'node_modules', '@ai.all', 'ui', 'bin', 'ui.js');
+    const siblingBin = path.resolve(PKG, '..', 'ui', 'bin', 'ui.js');
+    if (fs.existsSync(targetBin)) bin = targetBin;
+    else if (fs.existsSync(siblingBin)) bin = siblingBin;
+  }
+  if (bin)
+    return (
+      spawnSync(process.execPath, [bin, ...args], { cwd: TARGET, stdio: 'inherit' }).status === 0
+    );
+  const win = process.platform === 'win32';
+  const npxArgs = ['--yes', '@ai.all/ui@^0.2.0-beta.1', ...args];
+  const r = spawnSync('npx', win ? npxArgs.map((a) => `"${a}"`) : npxArgs, {
+    cwd: TARGET,
+    stdio: 'inherit',
+    shell: win,
+  });
+  return r.status === 0;
+}
+
+// The UI kit, then a sync so its pack reaches the agent entrypoints.
+function setupUi() {
+  console.log(`\n${C.yellow}Configuring @ai.all/ui…${C.reset}\n`);
+  if (!runUi(['init'])) {
+    err('UI init failed. Run: npx @ai.all/ui init');
+    return false;
+  }
+  if (!runAiall(['sync'])) {
+    err('Sync failed. Run: npx @ai.all/aiall sync');
+    return false;
+  }
+  return true;
+}
+
 function packEnabled() {
   try {
     const cfg = JSON.parse(fs.readFileSync(path.join(TARGET, '.ai', 'aiall.json'), 'utf8'));
@@ -623,6 +664,10 @@ async function cmdInit() {
     process.exitCode = 1;
     return;
   }
+  if (!setupUi()) {
+    process.exitCode = 1;
+    return;
+  }
   legacyWarnings();
 
   ensureGitignore();
@@ -636,6 +681,9 @@ async function cmdInit() {
     `  1. Review ${C.cyan}docs/BRAND.md${C.reset} with colors, typography, and page requirements.`,
   );
   console.log(`  2. Add project-specific guidelines to root ${C.cyan}ALL.md${C.reset}.`);
+  console.log(
+    `     The brandbook is at ${C.cyan}/ui${C.reset} (app/pages/ui.vue, from @ai.all/ui); add components with ${C.cyan}npx @ai.all/ui add <Name>${C.reset}.`,
+  );
   console.log(
     `  3. Run ${C.cyan}npx @ai.all/ds7 check${C.reset} to verify quality gates (guard, tokens, i18n, hygiene, layout).`,
   );
@@ -689,6 +737,10 @@ function cmdUpdate() {
     return;
   }
   if (!enablePack()) {
+    process.exitCode = 1;
+    return;
+  }
+  if (!setupUi()) {
     process.exitCode = 1;
     return;
   }

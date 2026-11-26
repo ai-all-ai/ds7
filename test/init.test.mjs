@@ -108,3 +108,23 @@ test('init adds no ds7 workflow when the project CI already runs the checks', (t
   assert.equal(cli(dir).status, 0);
   assert.ok(!has(dir, '.github/workflows/ds7.yml'));
 });
+
+test('init installs the UI kit: brandbook page, base tokens and the ui pack', (t) => {
+  const dir = project(t);
+  for (const f of [
+    'app/pages/ui.vue',
+    'app/assets/css/theme-base.css',
+    'app/assets/css/base.css',
+    'ui/aiall-pack.json',
+  ])
+    assert.ok(has(dir, f), `${f} is created`);
+  assert.ok(JSON.parse(read(dir, '.ai/aiall.json')).packs.includes('ui/aiall-pack.json'));
+  assert.match(read(dir, 'ALL.md'), /@ai\.all\/ui/, 'the ui pack is synced into ALL.md');
+});
+
+test('init keeps a brandbook page the project already has', (t) => {
+  const dir = bare(t);
+  put(dir, 'app/pages/ui.vue', '<template><main>own</main></template>\n');
+  assert.equal(cli(dir).status, 0);
+  assert.equal(read(dir, 'app/pages/ui.vue'), '<template><main>own</main></template>\n');
+});

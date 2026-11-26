@@ -77,7 +77,13 @@ function examples() {
   const routes = ofKind('page')
     .map((n) => n.route)
     .filter((r) => !r.includes('['));
-  const route = routes.filter((r) => r !== '/').sort((a, b) => a.length - b.length)[0] ?? routes[0];
+  // the brandbook (/ui) and other tool pages are not what a reader asks about first
+  const tools = new Set(['/ui', '/ds']);
+  const content = routes.filter((r) => !tools.has(r));
+  const route =
+    content.filter((r) => r !== '/').sort((a, b) => a.length - b.length)[0] ??
+    content[0] ??
+    routes[0];
   const styled = comps.find((n) => n.css.length && n.rootClass);
   return {
     uses: comps[0]?.name ?? 'UiButton',

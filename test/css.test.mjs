@@ -5,9 +5,11 @@ import { spawnSync } from 'node:child_process';
 import { project, cli, put, edit } from './helpers.mjs';
 
 const css = (dir, ...args) => cli(dir, ['css', ...args]);
+// main.css keeps the imports `ds7 init` gets from @ai.all/ui (theme-base.css, base.css)
+const uiImports = "@import './theme-base.css';\n@import './base.css';\n";
 const styled = (t, { main = '@import "./ui.css";\n', ui = '.card { color: red }\n' } = {}) => {
   const dir = project(t);
-  put(dir, 'app/assets/css/main.css', main);
+  put(dir, 'app/assets/css/main.css', uiImports + main);
   put(dir, 'app/assets/css/ui.css', ui);
   put(dir, 'app/components/ui/UiCard.vue', '<template><div class="card">x</div></template>\n');
   return dir;
@@ -20,9 +22,10 @@ test('css passes when every class is used and every file imported', (t) => {
 });
 
 test('css reports a class no template uses', (t) => {
-  const r = css(styled(t, { ui: '.card { color: red }\n.ghost { color: blue }\n' }));
+  // a name no template uses; the brandbook page from @ai.all/ui uses many words (ghost, outline…)
+  const r = css(styled(t, { ui: '.card { color: red }\n.phantom { color: blue }\n' }));
   assert.equal(r.status, 1);
-  assert.match(r.out, /dead-class[\s\S]*\.ghost/);
+  assert.match(r.out, /dead-class[\s\S]*\.phantom/);
 });
 
 test('css counts a dash modifier built from a prop as used', (t) => {

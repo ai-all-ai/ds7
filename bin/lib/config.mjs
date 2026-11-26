@@ -19,6 +19,10 @@ const DEFAULT_RULES = [
     path: 'ds7/**',
     what: 'Vendored DS7 standard; `ds7 update` replaces it. Local additions live in ds7/local/',
   },
+  {
+    path: 'ui/{aiall-pack.json,ALL.md}',
+    what: 'The @ai.all/ui pack and its rules; `ui init` writes them',
+  },
   { path: 'app/app.vue', what: 'Application root' },
   { path: 'app/error.vue', what: 'Error page for every status (404, 500): ds7 icons' },
   { path: 'app/layouts/*.vue', what: 'Page layouts' },

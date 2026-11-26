@@ -31,11 +31,12 @@ test('the pack routes agents to the SEO checklist and the token strategy', (t) =
   assert.ok(docs.some((d) => d.endsWith('08-token-optimization/TOKEN-STRATEGY.md')));
 });
 
-test('init enables the ds7 pack and writes the version file', (t) => {
+test('init enables the ds7 and ui packs and writes the version file', (t) => {
   const { dir } = init(t);
   assert.deepEqual(JSON.parse(read(dir, '.ai/aiall.json')).packs, [
     'aiall-core',
     'ds7/aiall-pack.json',
+    'ui/aiall-pack.json',
   ]);
   assert.equal(read(dir, 'ds7/VERSION').trim(), version);
 });
@@ -44,6 +45,8 @@ test('init links the ds7 rules from the root ALL.md and AI-ALL accepts the resul
   const p = init(t);
   const all = read(p.dir, 'ALL.md');
   assert.ok(all.includes('<!-- aiall:begin packs -->') && all.includes('ds7/ALL.md'));
+  assert.ok(all.includes('ui/ALL.md'), 'the ui pack is linked too');
+  // the ui pack is installed from npm with DS7, and AI-ALL accepts every link of both packs
   assert.equal(cli(p.dir, ['check', '--path', p.dir], p.aiall).status, 0);
 });
 

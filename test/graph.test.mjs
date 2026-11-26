@@ -91,7 +91,7 @@ test('graph --budget puts the most used file first', (t) => {
   );
   const lines = graph(dir, '--budget', '1000').stdout.split('\n');
   assert.match(lines[1], /^- UiButton /);
-  assert.match(lines[1], /by SectionsHero, SectionsMore/);
+  assert.match(lines[1], /by (\/ui, )?SectionsHero, SectionsMore/);
 });
 
 test('graph --budget stops when the budget is spent and says how much it left out', (t) => {

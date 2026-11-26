@@ -27,7 +27,7 @@
 New projects and new sections are built **top-down from the brand**, never by styling pages one by one (see `01-architecture/PROJECT-ONBOARDING.md`):
 
 1. **Brand Specification & Foundations** (`docs/BRAND.md` intake and `theme.css`): colour, type scale, spacing, radius, shadow, breakpoints, z-index. Written as named tokens.
-2. **Brandbook** (`/ui` sandbox, starter in `templates/ui.vue`): every foundation token shown, then the base atoms (`BTN-01`, `BTN-02`, `CTL-01`, `COUNTER-01`, `PRICE-01`) with their modifiers, states and contrast on light and dark backgrounds.
+2. **Brandbook** (`/ui` sandbox from `@ai.all/ui`, which `npx @ai.all/ds7` installs as `app/pages/ui.vue`): every foundation token shown, then the base atoms (`BTN-01`, `BTN-02`, `CTL-01`, `COUNTER-01`, `PRICE-01`) with their modifiers, states and contrast on light and dark backgrounds.
 3. **Atoms and molecules** built from the brandbook only. A component that is not in the sandbox is not finished.
 4. **Organisms and sections** composed from molecules.
 5. **Pages** assembled from sections, with data from `app/data/`.

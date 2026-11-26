@@ -30,9 +30,15 @@ Both a person and an agent understand that without a second description.
 
 ## 2. What the sandbox shows
 
-1. **Modifier toggles** for each component: `-top`, `-new`, `-compact`, `-dark`.
-2. **Background switch:** light, dark, inside a modal. Contrast is visible on each.
-3. **Copy code** next to each example: the reference snippet for pasting into a project.
+The sandbox comes from [`@ai.all/ui`](https://github.com/ai-all-ai/ui): Setup (`npx @ai.all/ds7`) runs `ui init`, which writes `app/pages/ui.vue`, `app/assets/css/theme-base.css` and `base.css`, and registers the ui pack. The page has five tabs:
+
+1. **Foundations:** every colour token in groups with its live value and contrast, type, space, radius, shadow.
+2. **Base elements:** a sample page in plain HTML with each tag and its purpose in the margin.
+3. **Components:** every pattern ID with its variants in labelled rows of sizes, states (hover, active, focus, disabled) and dark, each with its class, HTML and Vue code to copy.
+4. **Catalog:** all IDs in one filterable table, exportable as Markdown.
+5. **Dev tools:** layout grid, baseline rhythm, outlines, viewport size and a visual check of alt, labels, headings and SEO basics.
+
+Components are added to the project one by one with `npx @ai.all/ui add <Name>`; project components go next to them in `app/components/ui/`.
 
 ---
 
