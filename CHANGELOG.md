@@ -4,14 +4,14 @@ All notable changes to DS7 are recorded here. Format: [Keep a Changelog](https:/
 
 ## [Unreleased]
 
+## [2.7.0] — 2026-11-27
+
 ### Added
-- `@ai.all/ui` is a dependency. `ds7 init` and `ds7 update` run `ui init`: the brandbook page `app/pages/ui.vue` (kept when it exists), `app/assets/css/theme-base.css` and `base.css`, and the ui pack in `.ai/aiall.json`, followed by `aiall sync`.
+- DS7 installs `@ai.all/ui` as an npm dependency. For standard Nuxt 4 projects, `ds7 init` sets up the UI module, global styles and the `/ui` Brandbook, then syncs the AI-ALL pack.
+- `ds7 update` runs the UI scaffold update and preserves customized styles, pages and components.
 
 ### Removed
-- `templates/ui.vue`: the starter brandbook now comes from `@ai.all/ui`.
-
-### Compatibility
-- Run `npx @ai.all/ds7 update`. An existing `app/pages/ui.vue` is kept; to take the new brandbook, rename yours and run `npx @ai.all/ui init`. `app/assets/css/theme-base.css` is the kit's base and is replaced on update; keep brand values in your own `theme.css`.
+- `templates/ui.vue`: the Brandbook now comes from `@ai.all/ui`.
 
 ## [2.6.0] — 2026-11-26
 

@@ -41,6 +41,17 @@ test('init enables the ds7 and ui packs and writes the version file', (t) => {
   assert.equal(read(dir, 'ds7/VERSION').trim(), version);
 });
 
+test('installed DS7 supplies and initializes UI without a direct UI dependency', (t) => {
+  const { dir } = init(t);
+  const project = JSON.parse(read(dir, 'package.json'));
+  assert.ok(project.dependencies['@ai.all/ds7']);
+  assert.equal(project.dependencies['@ai.all/ui'], undefined);
+  assert.ok(has(dir, 'node_modules/@ai.all/ui/package.json'));
+  assert.match(read(dir, 'modules/aiall-ui.mjs'), /@ai\.all\/ui\/nuxt/);
+  assert.match(read(dir, 'app/pages/ui.vue'), /@ai\.all\/ui\/templates\/ui\.vue/);
+  assert.ok(has(dir, 'app/assets/css/main.css'));
+});
+
 test('init links the ds7 rules from the root ALL.md and AI-ALL accepts the result', (t) => {
   const p = init(t);
   const all = read(p.dir, 'ALL.md');

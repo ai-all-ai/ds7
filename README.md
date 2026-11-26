@@ -7,7 +7,8 @@
 > **Brand first, then components, then pages.** A web architecture standard that AI agents can follow without long briefings.
 
 ```bash
-npx @ai.all/ds7
+npm install -D @ai.all/ds7
+npx ds7 init
 ```
 
 DS7 is a set of rules, templates and reference documents for fast, multilingual Nuxt 4 / Vue 3 sites. AI agents start from the root `ALL.md`, which routes them to the DS7 rules in `ds7/ALL.md` and to the rules of your project.
@@ -32,6 +33,8 @@ npx ds7            # install the standard; `npx ds7 --yes` skips the questions
 npx ds7 doctor     # where the project stands and what to do next
 npx ds7 check      # the five quality gates
 ```
+
+Installing DS7 also installs `@ai.all/ui` and `@ai.all/aiall`. Init wires the UI kit into standard Nuxt 4 projects so the Brandbook is available at `/ui`. Build the Nuxt app with development dependencies installed.
 
 Then write your project's own values in the root `ALL.md`, below the packs block, and the settings of the commands in `ds7.config.json` ([CONFIG.md](CONFIG.md)).
 

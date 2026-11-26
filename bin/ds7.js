@@ -355,9 +355,7 @@ function runAiall(args) {
   return r.status === 0;
 }
 
-// @ai.all/ui: the UI kit (tokens, base styles, components, the /ui brandbook). Same lookup as AI-ALL; `ui init` works in
-// the current folder, so it runs with the project as cwd. It writes app/assets/css/theme-base.css and base.css, keeps an
-// existing app/pages/ui.vue, and registers ui/aiall-pack.json in .ai/aiall.json.
+// Run the bundled UI CLI with the project as cwd so it can manage the Nuxt and AI-ALL scaffold.
 function runUi(args) {
   let bin;
   try {
@@ -373,7 +371,8 @@ function runUi(args) {
       spawnSync(process.execPath, [bin, ...args], { cwd: TARGET, stdio: 'inherit' }).status === 0
     );
   const win = process.platform === 'win32';
-  const npxArgs = ['--yes', '@ai.all/ui@^0.2.0-beta.1', ...args];
+  const uiRange = require('../package.json').dependencies['@ai.all/ui'];
+  const npxArgs = ['--yes', `@ai.all/ui@${uiRange}`, ...args];
   const r = spawnSync('npx', win ? npxArgs.map((a) => `"${a}"`) : npxArgs, {
     cwd: TARGET,
     stdio: 'inherit',
@@ -383,10 +382,10 @@ function runUi(args) {
 }
 
 // The UI kit, then a sync so its pack reaches the agent entrypoints.
-function setupUi() {
+function setupUi(command) {
   console.log(`\n${C.yellow}Configuring @ai.all/ui…${C.reset}\n`);
-  if (!runUi(['init'])) {
-    err('UI init failed. Run: npx @ai.all/ui init');
+  if (!runUi([command])) {
+    err(`UI ${command} failed. Check the UI CLI output above.`);
     return false;
   }
   if (!runAiall(['sync'])) {
@@ -433,14 +432,14 @@ function legacyWarnings() {
 // .gitignore: the local intake folders and temporary files
 function ensureGitignore() {
   const giPath = path.join(TARGET, '.gitignore');
-  const entries = ['ds5/', '.ds5/', '*.tmp-pv'];
+  const entries = ['ds5/', '.ds5/', '*.tmp-pv', '/ui/.transaction.json', '/ui/.lock'];
   let content = fs.existsSync(giPath) ? fs.readFileSync(giPath, 'utf8') : '';
-  const missing = entries.filter((e) => !content.includes(e));
+  const missing = entries.filter((entry) => !content.split(/\r?\n/).includes(entry));
   if (missing.length) {
-    const banner = '\n# DS7 developer media intake & temp reports (local only)\n';
+    const banner = '\n# DS7 local media, UI transactions and temp reports\n';
     content = content.trimEnd() + banner + missing.join('\n') + '\n';
     fs.writeFileSync(giPath, content);
-    ok('.gitignore updated with local DS5 media entries');
+    ok('.gitignore updated with local file entries');
   }
 }
 
@@ -664,7 +663,7 @@ async function cmdInit() {
     process.exitCode = 1;
     return;
   }
-  if (!setupUi()) {
+  if (!setupUi('init')) {
     process.exitCode = 1;
     return;
   }
@@ -740,7 +739,7 @@ function cmdUpdate() {
     process.exitCode = 1;
     return;
   }
-  if (!setupUi()) {
+  if (!setupUi('update')) {
     process.exitCode = 1;
     return;
   }

@@ -8,7 +8,7 @@
 > Project-specific rules live in the root `ALL.md`, below the AI-ALL packs block (`<!-- aiall:begin packs -->` to `<!-- aiall:end packs -->`). AI-ALL keeps that text on sync. Longer project documents for agents live in `ds7/local/`, which `ds7 update` never writes; the root `ALL.md` links to them. Where project rules and this file disagree, the project rules win for that project and the disagreement is recorded in `docs/DECISIONS.md`.
 > This file is the `ds7` pack of AI-ALL. The root `ALL.md` lists it in the packs block. Every entrypoint (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/*`, `.windsurf/rules/*`, `.github/copilot-instructions.md`) points to the root `ALL.md`. Sync them with `npx @ai.all/aiall sync`.
 
-**Version:** 2.6.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, Tailwind CSS v4, `@nuxtjs/i18n`, static generation.
+**Version:** 2.7.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, Tailwind CSS v4, `@nuxtjs/i18n`, static generation.
 
 ---
 
