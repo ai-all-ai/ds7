@@ -74,6 +74,7 @@ if (cfg?.exists) {
   const user = JSON.parse(fs.readFileSync(path.join(ROOT, 'ds7.config.json'), 'utf8'));
   const KNOWN = [
     '$schema',
+    'icons',
     'layout',
     'seo',
     'a11y',

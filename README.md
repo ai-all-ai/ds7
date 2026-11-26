@@ -111,7 +111,7 @@ Every checking command accepts `--json`, and `--update-baseline` to accept the f
 ```yaml
 jobs:
   site:
-    uses: ai-all-ai/ds7/.github/workflows/site.yml@v2.5.0
+    uses: ai-all-ai/ds7/.github/workflows/site.yml@v2.6.0
     with:
       pages: true
     permissions:

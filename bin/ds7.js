@@ -74,9 +74,12 @@ function listFiles(relDir) {
   return out;
 }
 
+// A path for messages: relative, with forward slashes on every system
+const relPath = (from, to) => path.relative(from, to).split(path.sep).join('/');
+
 // Copy one file. `overwrite` decides whether an existing file is replaced.
 function copyOne(relFromPkg, destAbs, overwrite) {
-  const label = path.relative(TARGET, destAbs);
+  const label = relPath(TARGET, destAbs);
   if (fs.existsSync(destAbs) && !overwrite) {
     skip(label);
     return false;
@@ -200,12 +203,12 @@ function packManifest() {
 function writePackManifest(overwrite) {
   const dest = path.join(DS7, 'aiall-pack.json');
   if (fs.existsSync(dest) && !overwrite) {
-    skip(path.relative(TARGET, dest));
+    skip(relPath(TARGET, dest));
     return;
   }
   fs.mkdirSync(DS7, { recursive: true });
   fs.writeFileSync(dest, `${JSON.stringify(packManifest(), null, 2)}\n`);
-  ok(path.relative(TARGET, dest));
+  ok(relPath(TARGET, dest));
 }
 
 function writeVersion() {
@@ -342,8 +345,12 @@ function runAiall(args) {
     const r = spawnSync(process.execPath, [bin, ...args, '--path', TARGET], { stdio: 'inherit' });
     return r.status === 0;
   }
-  const r = spawnSync('npx', ['--yes', '@ai.all/aiall@^1.0.0', ...args, '--path', TARGET], {
+  // on Windows npx is a .cmd file and needs the shell; quoted, so cmd keeps the ^ and paths with spaces
+  const win = process.platform === 'win32';
+  const npxArgs = ['--yes', '@ai.all/aiall@^1.0.0', ...args, '--path', TARGET];
+  const r = spawnSync('npx', win ? npxArgs.map((a) => `"${a}"`) : npxArgs, {
     stdio: 'inherit',
+    shell: win,
   });
   return r.status === 0;
 }
@@ -482,6 +489,9 @@ function ensureProjectFiles() {
     ['templates/local/RECURRING-RULES.md', 'ds7/local/RECURRING-RULES.md'],
     // a project whose own workflow already runs the DS7 checks gets no second one
     ...(ownCiRunsDs7() ? [] : [['templates/workflows/ds7.yml', '.github/workflows/ds7.yml']]),
+    // icons and error pages (`ds7 icons`): the site's own copies, kept when they exist
+    ['templates/error.vue', 'app/error.vue'],
+    ['templates/site.webmanifest', 'public/site.webmanifest'],
     ...skills,
   ];
   const created = [];
@@ -779,7 +789,7 @@ function runGuardChecks(targetDir) {
   const states = new Map();
   const note = (map, c, p) => {
     const set = map.get(c) || new Set();
-    set.add(path.relative(TARGET, p));
+    set.add(relPath(TARGET, p));
     map.set(c, set);
   };
   const searchDirs = cfg.dirs.map((d) => path.join(targetDir, d)).filter((d) => fs.existsSync(d));
@@ -844,7 +854,7 @@ function runGuardChecks(targetDir) {
         const matches = fs.readFileSync(f, 'utf8').match(UP);
         if (matches)
           layerIssues.push(
-            `ui → upper layer: ${path.relative(TARGET, f)} uses ${[...new Set(matches.map((m) => m.slice(1)))].join(', ')}`,
+            `ui → upper layer: ${relPath(TARGET, f)} uses ${[...new Set(matches.map((m) => m.slice(1)))].join(', ')}`,
           );
       }
     }
@@ -858,7 +868,7 @@ function runGuardChecks(targetDir) {
       const lines = styleMatch ? styleMatch[1].split('\n').length : 0;
       if (lines > cfg.pageStyleLines)
         layerIssues.push(
-          `page with ${lines} style lines (move to a component/molecule): ${path.relative(TARGET, f)}`,
+          `page with ${lines} style lines (move to a component/molecule): ${relPath(TARGET, f)}`,
         );
     }
   }
@@ -937,9 +947,7 @@ function validateRawColors(targetDir) {
       if (val.includes('var(')) continue;
       const rawMatch = val.match(RAW_COLOR);
       if (rawMatch) {
-        issues.push(
-          `raw color ${rawMatch[0]} in ${path.relative(TARGET, f)} (use var(--color-*) token)`,
-        );
+        issues.push(`raw color ${rawMatch[0]} in ${relPath(TARGET, f)} (use var(--color-*) token)`);
       }
     }
   }
@@ -1105,13 +1113,13 @@ function validateI18n(targetDir) {
           };
           extract(JSON.parse(content));
         } catch (e) {
-          issues.push(`invalid JSON in ${path.relative(targetDir, file)}: ${e.message}`);
+          issues.push(`invalid JSON in ${relPath(targetDir, file)}: ${e.message}`);
         }
       } else {
         const { keys: ks, dups } = localeKeysOfSource(content);
         for (const k of ks) keys.add(at(k));
         for (const d of dups)
-          issues.push(`key written twice in ${path.relative(targetDir, file)}: ${at(d)}`);
+          issues.push(`key written twice in ${relPath(targetDir, file)}: ${at(d)}`);
       }
     }
     localeKeys.set(loc, keys);
@@ -1159,7 +1167,7 @@ function validateRepoHygiene(targetDir) {
           FORBIDDEN_EXT.test(e.name) ||
           /-(?:tmp|scratch)\./.test(e.name)
         ) {
-          issues.push(`temporary / raw artifact in tree: ${path.relative(TARGET, p)}`);
+          issues.push(`temporary / raw artifact in tree: ${relPath(TARGET, p)}`);
         }
       }
     }
@@ -1346,6 +1354,7 @@ const SCRIPT_COMMANDS = [
   'css',
   'unused',
   'console',
+  'icons',
   'images',
   'pages',
   'adopt',
@@ -1425,6 +1434,7 @@ DS7 ${version}
   npx @ai.all/ds7 css       dead classes and orphan stylesheets; "css diff [REV]" proves a CSS refactor changed no rule
   npx @ai.all/ds7 unused    components, composables, data files and public assets nothing refers to
   npx @ai.all/ds7 console   console errors, exceptions and failed requests of every page in a browser; needs Playwright
+  npx @ai.all/ds7 icons     favicon, Apple, manifest and theme icons on every page; the 404 and 500 error pages
   npx @ai.all/ds7 pages     GitHub Pages preset: asset() helper and a deploy workflow under the base path
   npx @ai.all/ds7 adopt     which local tools/ scripts a ds7 command replaces (--write rewrites the npm scripts)
   npx @ai.all/ds7 patch F   record a local edit of the vendored file ds7/F as a patch that update re-applies

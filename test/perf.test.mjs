@@ -133,6 +133,17 @@ test('perf reports a font-face without font-display', (t) => {
   assert.match(run(dir).out, /font-display/);
 });
 
+test('perf accepts a metric fallback font-face that downloads nothing', (t) => {
+  const dir = site(t, (d) =>
+    edit(
+      d,
+      '.output/public/_nuxt/entry.css',
+      (s) => `${s}@font-face{font-family:F Fallback;src:local(Arial);size-adjust:110%}`,
+    ),
+  );
+  assert.doesNotMatch(run(dir).out, /font-display/);
+});
+
 test('perf reports a font-face that lists woff before woff2', (t) => {
   const dir = site(t, (d) =>
     edit(

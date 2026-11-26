@@ -140,7 +140,11 @@ const allCss = (fs.existsSync(cssDir) ? fs.readdirSync(cssDir) : [])
   .map((f) => fs.readFileSync(path.join(cssDir, f), 'utf8'))
   .join('\n');
 const faces = [...allCss.matchAll(/@font-face\s*\{[^}]*\}/g)].map((m) => m[0]);
-const noDisplay = faces.filter((b) => !/font-display\s*:\s*(swap|optional|fallback)/.test(b));
+// a metric fallback (src: local(Arial) only) downloads nothing, so it has no swap period to set
+const downloads = (b) => /url\(/.test(b);
+const noDisplay = faces.filter(
+  (b) => downloads(b) && !/font-display\s*:\s*(swap|optional|fallback)/.test(b),
+);
 if (noDisplay.length)
   bad('(css)', 'font-display', `${noDisplay.length} @font-face rules without font-display: swap`);
 const woff = (fs.existsSync(cssDir) ? fs.readdirSync(cssDir) : []).filter((f) =>

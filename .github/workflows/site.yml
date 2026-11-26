@@ -3,7 +3,7 @@
 #
 #   jobs:
 #     site:
-#       uses: ai-all-ai/ds7/.github/workflows/site.yml@v2.5.0
+#       uses: ai-all-ai/ds7/.github/workflows/site.yml@v2.6.0
 #       with:
 #         pages: true
 #       permissions:

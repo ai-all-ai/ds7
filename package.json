@@ -1,6 +1,6 @@
 {
   "name": "@ai.all/ds7",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "AI-ready architecture standard for web projects: brand-first foundations, Atomic Design and agent rules in one place",
   "keywords": [
     "architecture",
@@ -79,7 +79,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "test": "node bin/ds7.js --version && node bin/ds7.js --help > /dev/null && node --test test/*.test.mjs",
+    "test": "node scripts/test.mjs",
     "test:one": "node --test",
     "format": "npx --yes prettier@3.6.2 --write \"**/*.{js,mjs,cjs,ts,vue,json,yml,yaml}\"",
     "format:check": "npx --yes prettier@3.6.2 --check \"**/*.{js,mjs,cjs,ts,vue,json,yml,yaml}\"",

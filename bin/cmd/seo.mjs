@@ -61,6 +61,11 @@ const link = (h, rel) => {
 const urlOf = (route) =>
   route === '/' ? `${SITE}/` : `${SITE}${route}${cfg.seo.trailingSlash ? '/' : ''}`;
 const noSlash = (p) => (p.length > 1 ? p.replace(/\/$/, '') : p);
+// the home page, or its copy in another language (/en): one level deep, and one of its hreflang alternates is the site root
+const isHome = (route, html) =>
+  route === '/' ||
+  (/^\/[a-z]{2}(-[a-z]+)?$/i.test(route) &&
+    alternates(html).some((a) => noSlash(a.href || '') === SITE || a.href === `${SITE}/`));
 // <link rel="alternate" hreflang="..." href="..."> of a page
 const alternates = (h) =>
   [...h.matchAll(/<link[^>]*\srel="alternate"[^>]*>/gi)]
@@ -86,7 +91,13 @@ const pages = walkBuild(OUT)
   });
 const internal = cfg.seo.internal.map(noSlash);
 const isInternal = internalRoutes(cfg);
-const indexable = pages.filter((p) => !p.noindex && !isInternal(p.route));
+// a page whose canonical names another built page is a declared copy (a legal text kept in one language): not indexed on its own
+const canonicalOf = (p) => link(p.html, 'canonical');
+const isCopy = (p) => {
+  const c = canonicalOf(p);
+  return !!c && c !== urlOf(p.route) && pages.some((q) => q !== p && urlOf(q.route) === c);
+};
+const indexable = pages.filter((p) => !p.noindex && !isInternal(p.route) && !isCopy(p));
 
 // targets
 const targets =
@@ -265,12 +276,28 @@ for (const p of indexable) {
     else
       for (const k of ['name', 'url', 'logo'])
         if (!org[k]) bad(route, 'json-ld', `organisation lacks ${k}`);
-    const web = graph.find((n) => type(n).includes('WebPage'));
+    // WebPage or one of its kinds; an article page describes itself as Article or BlogPosting
+    const PAGE_TYPES = [
+      'WebPage',
+      'AboutPage',
+      'ContactPage',
+      'CollectionPage',
+      'FAQPage',
+      'ItemPage',
+      'ProfilePage',
+      'SearchResultsPage',
+      'CheckoutPage',
+      'Article',
+      'BlogPosting',
+      'NewsArticle',
+      'TechArticle',
+    ];
+    const web = graph.find((n) => type(n).some((t) => PAGE_TYPES.includes(t)));
     if (!web) bad(route, 'json-ld', 'no WebPage node');
     else if (web.url !== urlOf(route))
       bad(route, 'json-ld', `WebPage url ${web.url} is not ${urlOf(route)}`);
     const crumbs = graph.find((n) => type(n).includes('BreadcrumbList'));
-    if (route !== '/' && !crumbs) bad(route, 'json-ld', 'no BreadcrumbList');
+    if (!isHome(route, html) && !crumbs) bad(route, 'json-ld', 'no BreadcrumbList');
     for (const [i, it] of (crumbs?.itemListElement || []).entries())
       if (it.position !== i + 1 || !it.name || !it.item)
         bad(route, 'json-ld', 'BreadcrumbList item is not numbered 1..n with name and item');
@@ -333,9 +360,18 @@ else {
   for (const d of disallowed)
     if (indexable.some((p) => p.route === d || p.route.startsWith(d + '/')))
       bad('/robots.txt', 'robots', `blocks the indexable page ${d}`);
+  // a tool page that says noindex may stay crawlable: Google has to read the tag to drop it
+  const saysNoindex = (d) => {
+    const built = pages.filter((p) => p.route === d || p.route.startsWith(d + '/'));
+    return built.length > 0 && built.every((p) => p.noindex);
+  };
   for (const d of internal)
-    if (!disallowed.includes(noSlash(d)))
-      bad('/robots.txt', 'robots', `does not block the internal tool ${d}`);
+    if (!disallowed.includes(noSlash(d)) && !saysNoindex(noSlash(d)))
+      bad(
+        '/robots.txt',
+        'robots',
+        `does not block the internal tool ${d} (block it, or give its pages a noindex tag)`,
+      );
   for (const d of disallowed)
     if (!internal.map(noSlash).includes(d))
       bad(

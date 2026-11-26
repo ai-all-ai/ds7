@@ -1,6 +1,8 @@
 // `ds7 audit seo`: one test per rule of the search checks.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { site, cli, edit, editPage, put, PAGES, SITE } from './helpers.mjs';
 
 const run = (dir, ...more) => cli(dir, ['audit', 'seo', ...more]);
@@ -433,4 +435,50 @@ test('seo reports an SVG social image', (t) => {
       editPage(d, route, (s) => s.split(`${SITE}/og.jpg`).join(`${SITE}/og.svg`));
   });
   assert.match(run(dir).out, /social-image[\s\S]*is an SVG/);
+});
+
+test('seo accepts an internal tool that robots.txt leaves open when its pages say noindex', (t) => {
+  const dir = site(t, (d) => {
+    put(d, '.output/public/robots.txt', `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`);
+    for (const tool of ['ui', 'ds'])
+      put(
+        d,
+        `.output/public/${tool}/index.html`,
+        '<!DOCTYPE html><html lang="en"><head><meta name="robots" content="noindex,nofollow"><title>Tool</title></head><body></body></html>',
+      );
+  });
+  assert.doesNotMatch(run(dir).out, /does not block the internal tool/);
+});
+
+test('seo leaves out a page whose canonical names another page (a copy kept in one language)', (t) => {
+  const dir = site(t, (d) => {
+    const about = fs.readFileSync(path.join(d, '.output/public/about/index.html'), 'utf8');
+    put(d, '.output/public/en/about/index.html', about);
+  });
+  const r = run(dir);
+  assert.equal(r.status, 0, r.out);
+  assert.match(r.out, /3 indexable pages of 4 built/);
+});
+
+test('seo accepts an Article node in place of WebPage', (t) => {
+  const dir = site(t, (d) =>
+    editPage(d, '/about', (s) => s.replace('"@type":"WebPage"', '"@type":"Article"')),
+  );
+  assert.doesNotMatch(run(dir).out, /no WebPage node/);
+});
+
+test('seo does not ask for breadcrumbs on the home page of another language', (t) => {
+  const dir = site(t, (d) => {
+    const home = fs
+      .readFileSync(path.join(d, '.output/public/index.html'), 'utf8')
+      .replace(/,\{"@type":"BreadcrumbList"[^\]]*\]\}/, '')
+      .replace(
+        '<link rel="canonical"',
+        `<link rel="alternate" hreflang="x-default" href="${SITE}/"><link rel="canonical"`,
+      )
+      .replaceAll(`${SITE}/"`, `${SITE}/en"`)
+      .replace(`hreflang="x-default" href="${SITE}/en"`, `hreflang="x-default" href="${SITE}/"`);
+    put(d, '.output/public/en/index.html', home);
+  });
+  assert.doesNotMatch(run(dir).out, /\/en[^\n]*no BreadcrumbList|no BreadcrumbList[^\n]*\/en/);
 });

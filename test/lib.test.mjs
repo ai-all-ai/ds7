@@ -2,9 +2,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { root, bare, put } from './helpers.mjs';
 
-const lib = (name) => import(path.join(root, 'bin', 'lib', name));
+// import() takes a URL: a Windows path such as D:\a\... would be read as the scheme d:
+const lib = (name) => import(pathToFileURL(path.join(root, 'bin', 'lib', name)).href);
 
 test('glob: * stays inside one folder', async () => {
   const { glob } = await lib('project.mjs');

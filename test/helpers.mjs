@@ -183,10 +183,20 @@ function installedTemplate() {
   const env = Object.fromEntries(
     Object.entries(process.env).filter(([k]) => k.toLowerCase() !== 'npm_config_dry_run'),
   );
+  // npm through Node: on Windows `npm` is a .cmd file, which spawnSync starts only through a shell.
+  // Under `npm test` npm_execpath names npm's own script; run directly, the tests fall back to the shell there.
+  const npmCli = /npm-cli\.[cm]?js$/.test(process.env.npm_execpath || '')
+    ? process.env.npm_execpath
+    : null;
   const run = (cmd, args, cwd) => {
-    const r = spawnSync(cmd, args, { cwd, encoding: 'utf8', env });
+    const opts = { cwd, encoding: 'utf8', env };
+    const r = npmCli
+      ? spawnSync(process.execPath, [npmCli, ...args], opts)
+      : spawnSync(cmd, args, { ...opts, shell: process.platform === 'win32' });
     if (r.status !== 0)
-      throw new Error(`${cmd} ${args.join(' ')} failed:\n${r.stdout}\n${r.stderr}`);
+      throw new Error(
+        `${cmd} ${args.join(' ')} failed:\n${r.error?.message || ''}\n${r.stdout}\n${r.stderr}`,
+      );
     return r.stdout;
   };
   const [{ filename }] = JSON.parse(

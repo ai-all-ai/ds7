@@ -20,7 +20,7 @@ Release `@ai.all/aiall` first. DS7 depends on it, and the `ds7` pack needs an AI
 1. Move the `Unreleased` section of `CHANGELOG.md` to the new version, with the date.
 2. Bump `version` in `package.json` and `package-lock.json`.
 3. Run `npm run verify` (format check, every test, `npm pack --dry-run`): the same steps as CI, so CI cannot fail on them after the push. Check that the tarball has `ALL.md`, `CHANGELOG.md`, `README.md`, `SPEC.md`, `bin/`, the numbered folders and `templates/`, and nothing else. It must not contain an `ALL.project.md` at its root (`templates/ALL.project.md` is the starter and belongs there).
-4. Run the tests on the oldest supported Node (`engines` in `package.json`, today 18): `npx -y -p node@18 node --test test/*.test.mjs`. CI runs Node 18, 20, 22 and 24 on Linux and macOS.
+4. Run the tests on the oldest supported Node (`engines` in `package.json`, today 18): `npx -y -p node@18 node scripts/test.mjs`. CI runs Node 18, 20, 22 and 24 on Linux and macOS.
 5. Check the version is unused: `npm view @ai.all/ds7 versions --json`.
 6. Commit the release with a message such as `Release 2.1.0`. Tag it: `git tag v2.1.0`.
 7. Publish: `npm publish --dry-run`, then `npm publish --access public`. Authenticate with 2FA.

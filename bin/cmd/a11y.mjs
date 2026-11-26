@@ -224,9 +224,15 @@ for (const { route: r, root } of pages) {
         if (!byId.has(id))
           bad(r, '4.1.2', 'aria-reference', `${brief(n)} ${k}="${id}" points at nothing`);
   }
+  // an inert element and everything in it cannot take focus (hidden slides of a carousel)
+  const inert = (x) => {
+    for (let p = x; p; p = p.parent) if (attr(p, 'inert') !== undefined) return true;
+    return false;
+  };
   for (const n of all(root, (x) => attr(x, 'aria-hidden') === 'true')) {
     const focusable = [n, ...all(n, () => true)].filter(
       (x) =>
+        !inert(x) &&
         (['button', 'input', 'select', 'textarea'].includes(x.tag) ||
           (x.tag === 'a' && attr(x, 'href') !== undefined) ||
           attr(x, 'tabindex') === '0') &&

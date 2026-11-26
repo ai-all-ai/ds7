@@ -146,6 +146,13 @@ Gate 3 reads `.ts` and `.js` locale files with a small tokenizer: words inside s
 | `images.strip` | `{ dirs: ["public"], xmp: true, stopwords: [...] }` | Metadata removal. With `xmp`, a WebP in `public/` gets a title and keywords from its file name. |
 | `images.dupes` | `{ distance: 4 }` | How close two perceptual hashes may be to count as the same picture. |
 
+## icons (`ds7 icons`)
+
+Favicon, Apple touch icon, manifest icons, the icon and social tags on every page, and the error pages (`app/error.vue`, `404.html`). Explained in `04-seo-ai-optimization/ICONS-AND-ERROR-PAGES.md`.
+
+- `"icons": false` turns the command off.
+- `"icons": { "errorPages": false }` keeps the icon checks and skips the error page checks.
+
 ## Optional packages
 
 `postcss` (`ds7 css`, contrast in `audit a11y`), `sharp` (`ds7 images` except `strip`) and `playwright` (`ds7 console`, `ds7 lab`) are optional. They are loaded from the project. A command that needs a missing one prints the install line and stops without failing; on CI (`CI` is set) it fails, so a missing tool never looks like a passed check. `ds7 doctor` shows which are installed.

@@ -4,6 +4,18 @@ All notable changes to DS7 are recorded here. Format: [Keep a Changelog](https:/
 
 ## [Unreleased]
 
+## [2.6.0] — 2026-11-26
+
+### Added
+- `ds7 icons`: the favicon, Apple touch icon, web manifest icons (192, 512 and maskable), theme colour and Open Graph image on every page, and the error pages (`app/error.vue` for every status, `404.html` in the build). Templates `templates/error.vue` and `templates/site.webmanifest`; see `04-seo-ai-optimization/ICONS-AND-ERROR-PAGES.md`.
+
+### Fixed
+- `ds7 audit a11y`: content that is `inert` as well as `aria-hidden` (a hidden carousel slide) is not reported as focusable.
+- `ds7 audit perf`: a metric fallback `@font-face` that downloads nothing (`src: local(Arial)`) does not need `font-display`.
+- `ds7 audit seo`: a page whose canonical names another built page (a legal text kept in one language) is a declared copy and is not checked as an indexable page; `Article`, `BlogPosting` and the other kinds of `WebPage` count as the page node; the home page of another language (`/en`) needs no breadcrumbs; an internal tool that `robots.txt` leaves open is accepted when its pages carry `noindex`.
+- Windows: when AI-ALL is not installed next to DS7, `ds7 init` and `ds7 update` start it through `npx` in a shell, because there `npx` is a `.cmd` file that Node does not start directly.
+- Windows: paths in messages of `ds7 init`, `ds7 update` and `ds7 check` use forward slashes, as on the other systems.
+
 ## [2.5.0] — 2026-11-25
 
 ### Added

@@ -20,6 +20,7 @@ const DEFAULT_RULES = [
     what: 'Vendored DS7 standard; `ds7 update` replaces it. Local additions live in ds7/local/',
   },
   { path: 'app/app.vue', what: 'Application root' },
+  { path: 'app/error.vue', what: 'Error page for every status (404, 500): ds7 icons' },
   { path: 'app/layouts/*.vue', what: 'Page layouts' },
   { path: 'app/pages/**/*.vue', what: 'Routes: data in, sections out' },
   {
@@ -199,6 +200,11 @@ export function loadConfig(root = process.cwd()) {
       widths: user.console?.widths ?? [1440, 390],
       warnings: user.console?.warnings ?? true,
       allow: user.console?.allow ?? [],
+    },
+    // icons: false turns `ds7 icons` off; errorPages: false skips the error page checks
+    icons: {
+      off: user.icons === false,
+      errorPages: user.icons?.errorPages ?? true,
     },
     // images: false turns `ds7 images` off; the variants, optimize, strip and dupes modes each read their part
     images: {

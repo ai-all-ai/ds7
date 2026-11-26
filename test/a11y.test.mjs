@@ -166,3 +166,14 @@ test('a11y with exceptionPolicy "strict" wants a reason, the comment above the r
   assert.match(out, /put \/\* a11y exception/);
   assert.match(out, /"\.gone" no longer matches a failing rule/);
 });
+
+test('a11y reports a focusable element inside aria-hidden', (t) => {
+  const r = broken(t, '<div aria-hidden="true"><button type="button">Go</button></div>');
+  assert.equal(r.status, 1);
+  assert.match(r.out, /aria-hidden-focusable/);
+});
+
+test('a11y accepts aria-hidden content that is also inert (a hidden carousel slide)', (t) => {
+  const r = broken(t, '<div inert aria-hidden="true"><button type="button">Go</button></div>');
+  assert.equal(r.status, 0, r.out);
+});

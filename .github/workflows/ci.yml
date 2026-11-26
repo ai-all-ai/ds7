@@ -9,7 +9,11 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    # a full run takes about two minutes: a hung job stops here instead of after six hours
+    timeout-minutes: 10
     strategy:
+      # one failing cell does not cancel the others, so every system reports its own result
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
         node: [18, 20, 22, 24]
@@ -45,8 +49,14 @@ jobs:
           mkdir -p "$dir"
           cd "$GITHUB_WORKSPACE/aiall"
           npm pack --pack-destination "$dir" --json > "$dir/pack.json"
-          file="$(node -p "require('$dir/pack.json')[0].filename")"
-          echo "AIALL_TARBALL=$dir/$file" >> "$GITHUB_ENV"
+          # the path goes in through the environment: on Windows it has backslashes,
+          # which a JavaScript string literal would read as escapes
+          PACK_DIR="$dir" node -e '
+            const path = require("path");
+            const dir = process.env.PACK_DIR;
+            const [{ filename }] = JSON.parse(require("fs").readFileSync(path.join(dir, "pack.json"), "utf8"));
+            console.log("AIALL_TARBALL=" + path.join(dir, filename));
+          ' >> "$GITHUB_ENV"
 
       - name: Check formatting
         if: matrix.os == 'ubuntu-latest'
