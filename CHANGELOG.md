@@ -4,6 +4,8 @@ All notable changes to DS7 are recorded here. Format: [Keep a Changelog](https:/
 
 ## [Unreleased]
 
+## [2.8.0] — 2026-11-27
+
 ### Changed
 - Tailwind CSS is optional. The reference Nuxt config no longer imports or loads it. Existing projects that use Tailwind keep working.
 - Naming: the recommended profile uses short root names, dash modifiers (`.-sm`) and inner parts scoped under the root. BEM is no longer recommended; its naming is removed from the guidance.
