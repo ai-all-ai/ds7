@@ -46,6 +46,23 @@ test('css advises on a selector defined twice in one context, without failing', 
   assert.match(r.out, /advice: 1 selector/);
 });
 
+test('css advises on !important in stylesheets and component styles, without failing', (t) => {
+  const dir = styled(t, { ui: '.card { color: red !important }\n' });
+  put(
+    dir,
+    'app/components/ui/UiCard.vue',
+    '<template><div class="card">x</div></template>\n<style>\n.card { margin: 0 ! important }\n</style>\n',
+  );
+  const r = css(dir);
+  assert.equal(r.status, 0, r.out);
+  assert.match(r.out, /advice: 2 !important/);
+  assert.match(r.out, /UiCard\.vue:3/);
+  edit(dir, 'ds7.config.json', (s) =>
+    JSON.stringify({ ...JSON.parse(s), css: { important: 'off' } }),
+  );
+  assert.doesNotMatch(css(dir).out, /!important/);
+});
+
 test('css takes its folder and switches from ds7.config.json', (t) => {
   const dir = styled(t, { ui: '.card { color: red }\n.ghost { color: blue }\n' });
   edit(dir, 'ds7.config.json', (s) => JSON.stringify({ ...JSON.parse(s), css: { dead: false } }));

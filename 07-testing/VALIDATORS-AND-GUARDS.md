@@ -15,7 +15,7 @@ The checks ship in the DS7 CLI. Most need nothing but Node.js; the few that need
 | `npx ds7 layout` | project files | Node.js | Every file sits where the placement rules say; component files carry their folder prefix; required docs exist; no import crosses a layer. Gate 5 of `check`. |
 | `npx ds7 graph` | `app/`, `server/` | Node.js | Writes `docs/SITE-GRAPH.md` and the placement table. `--check` fails when stale; `--uses X`, `--of X`, `--css X` answer questions; `--budget N` prints the most used files first within about N tokens; `--stats` compares the map with the files it covers. |
 | `npx ds7 docs` | `docs/`, `ALL.md`, skills | Node.js | Everything the documents name exists: scripts, paths, links, sections, registered skills. Paths git ignores are skipped. |
-| `npx ds7 css` | `app/assets/css` | postcss | Orphan stylesheets and dead classes fail; repeated selectors and identical blocks are advice. `css diff [rev]` lists the rules a refactor lost or gained. |
+| `npx ds7 css` | `app/assets/css` | postcss | Orphan stylesheets and dead classes fail; repeated selectors, identical blocks and `!important` (also in component `<style>`) are advice. `css diff [rev]` lists the rules a refactor lost or gained. |
 | `npx ds7 unused` | the source | Node.js | Components, exports, data files and public assets nothing refers to. |
 | `npx ds7 audit [html\|seo\|a11y\|perf]` | the build (`.output/public`) | Node.js | Static audits over the generated site; see `04-seo-ai-optimization/SEO-CHECKLIST.md`. Run `nuxt generate` first. `html --base /repo/` checks a build for a base path. `perf` also gives advice that does not fail: files without `.br`/`.gz`, a build without `404.html`. |
 | `npx ds7 console` | the build | Playwright | Every page in a browser at each width: console errors and warnings, exceptions, failed requests, HTTP errors. |
@@ -53,7 +53,7 @@ Every setting of these commands, with its default and its off switch, is in `CON
   <article class="p-card-top-compact">
   <button class="btn-primary-lg">
   ```
-- **State classes:** `is-active`, `is-open` and the like follow `guard.stateClasses`. The default `"warn"` lists them as advice; `"deny"` reports them like any baked-in modifier; `"allow"` stays silent. The standard writes state as a dash modifier too (`.menu.-open`); the default becomes `"deny"` in 3.0.
+- **State classes:** `is-active`, `is-open` and the like follow `guard.stateClasses`. The default `"warn"` lists them as advice; `"deny"` reports them like any baked-in modifier; `"allow"` stays silent. The standard writes state as a native state, ARIA or `data-state` (`[aria-expanded='true']`, `02-design-system/CSS-CONVENTIONS.md` section 7); the default becomes `"deny"` in 3.0.
 - **Never reported:** Vue transition classes (`*-enter-active`, `*-leave-to`, ...) and the names in `guard.allowClasses`.
 - **What the guard detects:** a class or selector whose last word is one of the modifier words of `guard.suffixes` (default `active`, `big`, `small`, `large`, `orange`, `red`, `green`, `blue`, `dark`, `light`, `new`, `alt`, `v1`, `v2`, ...), in `class="..."` attributes and in CSS selectors. It does not read dynamic `:class` bindings, and a compound with another word (`.card-gold`, `.btn-xl`) passes. The naming rule still applies to those; reviewers and agents enforce it.
 

@@ -155,7 +155,7 @@ export function loadConfig(root = process.cwd()) {
       skipLink: user.a11y?.skipLink === false ? 'off' : (user.a11y?.skipLink ?? 'warn'),
     },
     perf: { budgets: { ...DEFAULT_BUDGETS, ...(user.perf?.budgets ?? {}) } },
-    // css: false turns `ds7 css` off; dead and orphans fail, repeats are advice ("off" hides them)
+    // css: false turns `ds7 css` off; dead and orphans fail, repeats and important are advice ("off" hides them)
     css: {
       off: user.css === false,
       dir: user.css?.dir ?? 'app/assets/css',
@@ -172,6 +172,7 @@ export function loadConfig(root = process.cwd()) {
       orphans: user.css?.orphans ?? true,
       dead: user.css?.dead ?? true,
       repeats: user.css?.repeats ?? 'warn',
+      important: user.css?.important ?? 'warn',
       allow: user.css?.allow ?? [],
     },
     // unused: false turns `ds7 unused` off; each kind can be switched off; ignore holds globs of files never reported

@@ -34,7 +34,7 @@ Accepted issues go to `ds7-baseline.json` with `npx ds7 check --update-baseline`
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `guard.stateClasses` | `"warn"` | `is-*` state classes. `"warn"` prints advice, `"deny"` reports them like baked-in modifiers, `"allow"` says nothing. The standard is a dash modifier (`.menu.-open`). The default becomes `"deny"` in 3.0. |
+| `guard.stateClasses` | `"warn"` | `is-*` state classes. `"warn"` prints advice, `"deny"` reports them like baked-in modifiers, `"allow"` says nothing. The standard is a native state, ARIA or `data-state` (`[aria-expanded='true']`, `CSS-CONVENTIONS.md` section 7). The default becomes `"deny"` in 3.0. |
 | `guard.allowClasses` | `[]` | Class names never reported. |
 | `guard.suffixes` | `active, big, small, large, orange, red, green, blue, dark, light, new, alt, v1…` | Words that make `card-big` a baked-in modifier. `[]` turns this rule off. |
 | `guard.dirs` | `["app", "src", "components", "pages"]` | Folders searched for class names. |
@@ -75,6 +75,25 @@ Gate 3 reads `.ts` and `.js` locale files with a small tokenizer: words inside s
 | `docs.roots` | `app, docs, tools, scripts, ds7, i18n, server, public, .agents, .ai` | Folders a backticked path may point into. |
 | `docs.skipIgnored` | `true` | A path git ignores exists on one machine only; it is not reported. |
 
+
+## dev: the local address (`ds7 dev`)
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `dev.port` | the first free port of 3010, 3020, 3030, ... | Port of the Nuxt dev server. Init picks it and saves it here. 3000, 4000 and 4500 are never used; a port that another program holds is replaced by the next free one of the series, and the new one is saved. |
+| `dev.name` | from the package name (`velo.es` gives `velo`) | Host label of `http://<name>.localhost:<port>`. Two sites on one machine get different names and ports. |
+| `dev` | on | `false` makes `ds7 dev` run plain `nuxt dev` with its arguments. |
+
+`ds7 dev --dry-run` prints the Nuxt command and starts nothing.
+
+## update: `ds7 update`
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `update.patches` | `"apply"` | `"off"` never applies the patches in `ds7/local/patches/` after an update: the vendored files stay as the package ships them and the patches stay where they are, unapplied. For a project that changed a lot and carries its difference as text in `ds7/local/CUSTOM-LAYER.md`. `ds7 update --no-patches` does the same for one run. |
+
+A local edit of a vendored file that no patch carries is always saved to `ds7/local/edited/` first, so nothing is lost either way.
+
 ## seo (`ds7 audit seo`)
 
 | Key | Default | Meaning |
@@ -114,6 +133,7 @@ Gate 3 reads `.ts` and `.js` locale files with a small tokenizer: words inside s
 | `css.orphans` | `true` | Report stylesheets the entry does not import. |
 | `css.dead` | `true` | Report classes nothing uses. A dash modifier built from a prop (`-${tone}`) counts as used when the bare word is quoted somewhere. |
 | `css.repeats` | `"warn"` | Selectors repeated in one context and identical declaration blocks, as advice. `"off"` hides them. |
+| `css.important` | `"warn"` | Every `!important` in the stylesheets and in the `<style>` blocks of `.vue` files under `css.sources`, as advice. `"off"` hides it. |
 | `css.allow` | `[]` | Classes that are used in a way a search cannot see. |
 
 ## unused (`ds7 unused`)

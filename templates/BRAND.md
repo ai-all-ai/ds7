@@ -12,8 +12,8 @@
 - **Primary Audience:** B2C homeowners / luxury bike enthusiasts / corporate B2B
 - **Geographic Focus:** Seville, Andalusia, Spain (or global)
 - **Languages:** Primary: `es` · Secondary: `en`
-- **Dev Server Port:** `3000` (default) or dedicated port (e.g. `4500`, to avoid a collision with another project)
-- **Local Dev URL:** `http://localhost:<port>` (e.g. `http://localhost:4500`)
+- **Dev Server Port:** a free port of the series `3010`, `3020`, ... (never `3000` or `4000`), kept in `ds7.config.json` (`dev.port`)
+- **Local Dev URL:** `http://<project>.localhost:<port>` (e.g. `http://my-project.localhost:3010`), started with `npm run dev` (`ds7 dev`)
 - **Quick Commands:** `make dev` (start dev server), `make guard` (verify modifiers & atomic layers)
 
 ---

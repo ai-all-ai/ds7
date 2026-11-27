@@ -5,12 +5,17 @@ import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { site, put, bin } from './helpers.mjs';
 
-let playwright = null;
+// Found without loading it: Playwright needs Node 20, and on Node 18 loading it exits the process
+const req = createRequire(import.meta.url);
+let found = false;
 try {
-  playwright = createRequire(import.meta.url)('playwright');
+  req.resolve('playwright');
+  found = true;
 } catch {
   /* not installed: only the message is tested */
 }
+const playwright =
+  found && Number(process.versions.node.split('.')[0]) >= 20 ? req('playwright') : null;
 const run = (dir, env = {}) => {
   const r = spawnSync(process.execPath, [bin, 'console', '--widths', '390'], {
     cwd: dir,
@@ -22,7 +27,7 @@ const run = (dir, env = {}) => {
 
 test(
   'console says how to install Playwright when it is missing, and fails only on CI',
-  { skip: !!playwright },
+  { skip: found },
   (t) => {
     const dir = site(t);
     const r = run(dir);

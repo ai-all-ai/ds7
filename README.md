@@ -17,13 +17,25 @@ DS7 is a set of rules, templates and reference documents for fast, multilingual 
 
 - Node.js 18 or newer.
 - A project folder where you run the command. DS7 writes `ds7/` and the agent entrypoints there.
-- A web project that follows the stack in `ds7/SPEC.md` (Nuxt 4, Vue 3, plain CSS with custom properties; Tailwind CSS v4 is optional). The rules are written for that stack.
+- A web project that follows the stack in `ds7/SPEC.md` (Nuxt 4, Vue 3, plain CSS with custom properties and native nesting; Tailwind, UnoCSS, SCSS and other CSS tools are optional). The rules are written for that stack.
 
 ## Related
 
 - **npm:** [@ai.all/ds7](https://www.npmjs.com/package/@ai.all/ds7)
 - **GitHub:** [ai-all-ai/ds7](https://github.com/ai-all-ai/ds7)
 - **Delivered by:** [AI-ALL](https://github.com/ai-all-ai/aiall) (`@ai.all/aiall`) as the `ds7` pack. See [Packs](https://github.com/ai-all-ai/aiall#packs).
+
+## Packages
+
+| Package | Role |
+|---|---|
+| **DS7** (`@ai.all/ds7`) | The canonical standard: rules, recommendations, agent instructions, checks, production optimisation. |
+| **DS** (CSS layer) | The CSS implementation: tokens, themes, base styles, helpers, utilities. Ships today as the foundation layer of `@ai.all/ui` and the project's `theme.css`. |
+| **AI-ALL** (`@ai.all/aiall`) | The same behaviour for every AI agent; delivers the current DS7 instructions as a pack. |
+| **UI** (`@ai.all/ui`) | Reusable components and extra development tools. |
+| **DevTools, Brandbook, Asset Gallery** | Optional development helpers, left out of the public production build. UI components that pages use stay in it. |
+
+Deferred work (class-name mangler, own CSS compiler, critical CSS engine and others): [ROADMAP.md](ROADMAP.md).
 
 ## Quick start
 
@@ -36,6 +48,15 @@ npx ds7 check      # the five quality gates
 
 Installing DS7 also installs `@ai.all/ui` and `@ai.all/aiall`. Init wires the UI kit into standard Nuxt 4 projects so the Brandbook is available at `/ui`. Build the Nuxt app with development dependencies installed.
 
+Every site gets its own local address, `http://<name>.localhost:<port>`. The
+name comes from the package (`velo.es` gives `velo.localhost`), so no hosts
+file is needed. The port is the first free one of the series 3010, 3020,
+3030, ...; 3000, 4000 and 4500 are never used. Init saves both in
+`ds7.config.json` (`dev.port`, `dev.name`) and points a standard `npm run dev`
+at `ds7 dev`, which keeps them from run to run and moves to the next free port
+of the series when another program holds this one. Customized dev scripts are
+kept.
+
 Then write your project's own values in the root `ALL.md`, below the packs block, and the settings of the commands in `ds7.config.json` ([CONFIG.md](CONFIG.md)).
 
 A project that already has its own scripts in `tools/` can see which ones a ds7 command replaces with `npx ds7 adopt`.
@@ -47,8 +68,9 @@ A project that already has its own scripts in `tools/` can see which ones a ds7 
 | Command | What it does |
 |---|---|
 | `npx ds7` | Install: the standard in `ds7/`, the AI-ALL pack, `docs/` templates, `ds7.config.json`, starter skills, npm scripts and a CI workflow (none when your CI already runs the checks). Existing files are kept. |
-| `npx ds7 update` | Replace `ds7/` with this version. Local edits are kept: patches in `ds7/local/patches/` are applied again, and an edit without a patch is saved to `ds7/local/edited/`. |
+| `npx ds7 update` | Replace `ds7/` with this version. Local edits are kept: patches in `ds7/local/patches/` are applied again, and an edit without a patch is saved to `ds7/local/edited/`. `--no-patches` (or `"update": { "patches": "off" }` in `ds7.config.json`) applies none: for a project that changed a lot, whose difference is described in `ds7/local/CUSTOM-LAYER.md`. |
 | `npx ds7 patch <file>` | Record an edit of a vendored file as a patch that every update applies again. |
+| `npx ds7 dev` | Nuxt dev server on the site's own address `http://<name>.localhost:<port>`, with a free port of 3010, 3020, ... kept in `ds7.config.json` (`dev`). `--dry-run` prints the command. |
 | `npx ds7 sync` | Restore the agent entrypoints (`aiall sync`). |
 | `npx ds7 doctor` | Where the project stands, what the settings switch off, which optional packages are installed, what to do next (`--json`). |
 | `npx ds7 adopt` | Which local `tools/` scripts a ds7 command replaces (`--write` rewrites the npm scripts that only call them). |
@@ -65,7 +87,7 @@ A project that already has its own scripts in `tools/` can see which ones a ds7 
 | `npx ds7 layout` | Files sit where the layout rules say and no import crosses a layer. |
 | `npx ds7 graph` | The code map `docs/SITE-GRAPH.md`; ask it with `--uses X`, `--of /route`, `--css class`. |
 | `npx ds7 docs` | What the documents mention (scripts, paths, links, skills) exists. |
-| `npx ds7 css` | Dead classes and orphan stylesheets; repeated selectors and blocks as advice. `css diff [rev]` proves a CSS refactor changed no rule. |
+| `npx ds7 css` | Dead classes and orphan stylesheets; repeated selectors, identical blocks and `!important` as advice. `css diff [rev]` proves a CSS refactor changed no rule. |
 | `npx ds7 unused` | Components, exports, data files and public assets nothing refers to. |
 
 **Check the build** (after `npm run generate`)
@@ -94,7 +116,7 @@ Every checking command accepts `--json`, and `--update-baseline` to accept the f
 |---|---|---|---|
 | `ds7/**` | the standard | copies, keeps existing | overwrites, then applies `ds7/local/patches/` |
 | `ds7/aiall-pack.json`, `ds7/VERSION`, `ds7/FILES` | the CLI | writes | writes |
-| `ds7/local/**` | the project: notes, recurring rules, patches | starter `README.md` and `RECURRING-RULES.md` | never written (except `edited/`, see above) |
+| `ds7/local/**` | the project: notes, recurring rules, custom layer, patches | starter `README.md`, `RECURRING-RULES.md` and `CUSTOM-LAYER.md` | creates `CUSTOM-LAYER.md` if missing; otherwise never written (except `edited/`, see above) |
 | `docs/BRAND.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/METRICS.md` | the project | creates if missing | not changed |
 | `docs/SITE-GRAPH.md` | generated by `ds7 graph` | creates if missing | not changed |
 | `ds7.config.json` | settings of the commands; its presence turns on Gate 5 | creates if missing | not changed |
@@ -137,7 +159,7 @@ Contribution rules: [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities p
 
 ## Upgrading to 2.5
 
-1. If you changed files under `ds7/`, record each edit first: `npx ds7 patch <file>`. An edit you forget is not lost: `update` saves it to `ds7/local/edited/`.
+1. If you changed files under `ds7/`, record each small edit first (`npx ds7 patch <file>`), and describe larger differences in `ds7/local/CUSTOM-LAYER.md`. An edit you forget is not lost: `update` saves it to `ds7/local/edited/`.
 2. `npm i -D @ai.all/ds7@2.5` and `npx ds7 update`.
 3. `npx ds7 doctor`: it lists what is missing and which settings are in use.
 4. `npx ds7 check`. Gate 3 now compares full key paths of TS locales and may find keys the old check missed. Add them, or record them with `npx ds7 check --update-baseline` and fix them later.
@@ -171,7 +193,7 @@ A value that is not a token does not appear in a component. A pattern that is no
 | `ALL.md` | Agent contract: rules, build order, checklist, quick reference of component IDs |
 | `SPEC.md` | Technical baseline: stack, directory layout, naming, quality gates |
 | `01-architecture/` | Atomic Design levels, modifier system, component anatomy |
-| `02-design-system/` | Tokens, naming, brandbook sandbox with stable component IDs |
+| `02-design-system/` | CSS conventions, optional CSS tools, tokens and themes, naming, brandbook sandbox with stable component IDs |
 | `03-performance-web-vitals/` | Assets pipeline, critical CSS, font metrics, hydration, delivery and caching |
 | `04-seo-ai-optimization/` | SEO checklist and gates, answer blocks for AI search, structured data, local search |
 | `05-internationalization/` | One locale hub, adding a language |

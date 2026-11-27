@@ -17,9 +17,33 @@ export function optional(name) {
   return null;
 }
 
+// Whether a package can be found, without loading it: loading runs its code, and Playwright on Node 18 prints an
+// error and exits the process, which no try/catch stops.
+export function installed(name) {
+  for (const req of [fromProject, fromDs7]) {
+    try {
+      req.resolve(name);
+      return true;
+    } catch {
+      /* try the next place */
+    }
+  }
+  return false;
+}
+
 const hint = { playwright: ' && npx playwright install chromium' };
 
 export function requireOptional(name, why) {
+  if (
+    name === 'playwright' &&
+    installed(name) &&
+    Number(process.versions.node.split('.')[0]) < 20
+  ) {
+    console.log(
+      `${why} needs Playwright, which needs Node.js 20 or newer (this is ${process.version})`,
+    );
+    process.exit(process.env.CI ? 1 : 0);
+  }
   const mod = optional(name);
   if (mod) return mod;
   console.log(

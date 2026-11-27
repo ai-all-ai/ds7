@@ -66,24 +66,20 @@ const rootClasses = computed(() => [
 
 <style>
 .p-card {
-  --card-bg: var(--color-white);
-  --card-ink: var(--color-ink);
-
   container-type: inline-size;
   display: flex;
   flex-direction: column;
-  background: var(--card-bg);
-  color: var(--card-ink);
+  gap: var(--card-gap, var(--space-3));
+  padding: var(--card-p, var(--space-4));
+  background: var(--card-bg, var(--color-white));
   border-radius: var(--radius-md);
-  padding: var(--space-4);
-}
 
-@container (max-width: 320px) {
-  .p-card {
-    padding: var(--space-2);
-  }
-  .p-card .title {
-    font-size: 0.9rem;
+  &.-compact { --card-p: var(--space-2); }
+  &.-dark    { --card-bg: var(--color-ink-950); color: var(--color-white); }
+
+  @container (width < 20rem) {
+    .body { gap: var(--space-1); }
+    .title { font-size: var(--text-base); }
   }
 }
 </style>
@@ -94,8 +90,8 @@ const rootClasses = computed(() => [
 ## 2. Rules
 
 1. **Typed props.** Booleans for modifiers keep templates readable; `rootClasses` turns them into classes.
-2. **`container-type: inline-size`** on any component with responsive states. It reacts to its box, not to the screen.
-3. **Component-level custom properties** (`--card-bg`, `--card-ink`). Modifiers change the variables, not ten child selectors.
+2. **`container-type: inline-size`** on any component with responsive states. Its parts react to its box, not to the screen; a container query never styles the container itself.
+3. **Component variables read with a fallback** (`var(--card-p, var(--space-4))`) and not declared on the root, so a parent, a theme or a modifier can set them. Modifiers change the variables, not ten child selectors.
 4. **Stable ID** in `data-ref` (`CARD-01`). It links the live component to its entry in the brandbook.
 5. **Slots with fallbacks** for media and actions. The component works with any content in those slots.
 6. **A one-line summary** at the top of the file, as in the example.

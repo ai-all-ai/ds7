@@ -1,90 +1,87 @@
 # 01 · Modifier system and ancestry scoping
 
-One base component, many variants, no duplicate components.
+One base component, many variants, no duplicate components. The CSS rules behind this page: `02-design-system/CSS-CONVENTIONS.md`, sections 4 and 5.
 
 ---
 
 ## 1. Syntax
 
-Use a base class plus separate modifier classes. Each modifier starts with a dash:
+A base class plus separate modifier classes. Each modifier starts with a dash and names only what differs from the base:
 
 ```html
-<article class="p-card -top -new -compact">
-  <div class="art">…</div>
-  <h3 class="title">Panel 450 W</h3>
-  <div class="price">…</div>
+<article class="model-card -hor -compact">
+  <img src="…" alt="…">
+  <div class="body">
+    <h3>E-Trail 7</h3>
+    <p class="price">…</p>
+  </div>
 </article>
 ```
 
+The base class is a complete component. Ordinary size and colour take no modifier:
+
+```html
+<button class="btn">Continue</button>
+<a class="btn" href="/booking">Book online</a>
+<button class="btn -link" type="button">Show details</button>
+<button class="btn -transparent" type="button">More options</button>
+<button class="btn -primary -big">Book a visit</button>
+```
+
+Role, size and context are separate choices. An explicit `-primary` or
+`-secondary` sets a role. `-bright` and `-light` select named treatments from the theme.
+The same `.btn` styling applies to native buttons and links after browser-native
+appearance, spacing and text alignment are reset. `-link` changes a native
+button into a compact text-link appearance; `-transparent` preserves its full
+button size and touch area but removes its resting fill.
+An explicit `-small` or `-big` changes size.
+For buttons, single-line fields and selects, the default height comes from
+`--control-height` (44 px). The optional sizes use
+`--control-height-small` (36 px) and `--control-height-big` (52 px).
+The project theme assigns values to the same tokens. A larger legacy control
+that must retain its height uses an explicit size modifier.
+
 Why:
 - **Short class names** keep HTML and CSS small.
-- **Modifiers combine** freely: `-top -compact`, `-dark -lg`.
-- **Modifiers cascade:** a modifier on the root can change every child.
-
-Avoid long compound names such as `catalog-product-card--featured-large-dark`.
+- **Modifiers combine** freely: `-hor -compact`, `-dark -big`.
+- **Modifiers cascade:** a modifier on the root changes every part through custom properties.
 
 ---
 
 ## 2. Cascade from a modifier
 
+The component reads its variables with fallbacks; a modifier sets them:
+
 ```css
-.p-card {
-  --card-bg: var(--color-white);
-  --card-text: var(--color-ink);
-  --card-border: var(--color-ink-100);
-
-  background: var(--card-bg);
-  color: var(--card-text);
-  border: 1px solid var(--card-border);
+.model-card {
+  padding: var(--card-p, var(--space-4));
+  background: var(--card-bg, var(--color-white));
+  border: var(--border-w) solid var(--card-line, var(--color-line));
   border-radius: var(--radius-md);
-  padding: var(--space-4);
-}
 
-.p-card.-top {
-  --card-border: var(--color-sun);
-  box-shadow: var(--shadow-lift);
-}
-.p-card.-top .title {
-  font-weight: 700;
-}
-
-.p-card.-compact {
-  padding: var(--space-2);
-}
-
-.p-card.-dark {
-  --card-bg: var(--color-ink-950);
-  --card-text: var(--color-white);
-  --card-border: rgba(255, 255, 255, 0.12);
+  &.-compact { --card-p: var(--space-2); }
+  &.-top     { --card-line: var(--color-accent); box-shadow: var(--shadow-lift); }
+  &.-dark    { --card-bg: var(--color-ink-950); color: var(--color-white); }
 }
 ```
 
-Modifiers change custom properties where possible. That keeps the number of selectors small.
+One selector per modifier, however many parts read the variable.
 
 ---
 
-## 3. Context from an ancestor
+## 3. Context from a parent or an ancestor
 
-Sometimes a shared component must look different on one page. Do not create a second component. Scope the difference by an ancestor:
+A parent can tune every card it holds without touching the card:
 
 ```css
-/* the hook everywhere */
-.hero-hook {
-  background: var(--color-paper);
-  color: var(--color-ink);
-}
-
-/* the same hook on a dark page */
-body.page-business .hero-hook {
-  background: var(--color-ink-950);
-  color: var(--color-white);
-}
-
-/* the same hook inside a modal */
-.site-modal-box .hero-hook {
-  background: transparent;
-  padding: 0;
-}
+.model-list.-compact { --card-p: var(--space-2); }
 ```
 
-The page class on `<body>` is set by `usePageSeo` (`page-home`, `page-residential`, `page-business`, …). Wrong: `HookHome.vue` and `HookBusiness.vue`. Right: one `UiHeroHook` with context rules.
+A shared component that must look different on one page gets context, not a copy:
+
+```css
+body.page-business .hero { --hero-bg: var(--color-ink-950); }
+.modal .hero { --hero-p: 0; }
+```
+
+The page class on `<body>` is set by `usePageSeo` (`page-home`, `page-business`, …). Wrong: `HeroHome.vue` and `HeroBusiness.vue`. Right: one `Hero` read from variables, set by the context.

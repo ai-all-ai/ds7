@@ -10,7 +10,7 @@ Goal: fewer repeats, small files with one job, and a site that looks and behaves
 ## Order of work
 
 1. **Baseline.** A clean `git status`, then `npx ds7 check --strict`, the build and `npx ds7 audit`. Screenshots of the key pages at 390, 820 and 1440 px.
-2. **Measure before changing.** `npx ds7 css` (dead classes, orphan stylesheets, repeated selectors and blocks), `npx ds7 unused` (components, exports, data, assets), `npx ds7 images dupes`, file sizes. Report the numbers first.
+2. **Measure before changing.** `npx ds7 css` (dead classes, orphan stylesheets, repeated selectors and blocks, `!important`), `npx ds7 unused` (components, exports, data, assets), `npx ds7 images dupes`, file sizes. Report the numbers first.
 3. **Plan by concern,** smallest and safest first. One concern per change and per commit.
 4. **Change with proof.**
    - The same declarations in three or more rules become one shared rule or a token.

@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { ROOT, listFiles, isIgnored } from '../lib/project.mjs';
 import { loadConfig } from '../lib/config.mjs';
 import { BASELINE_FILE } from '../lib/report.mjs';
-import { OPTIONAL, optional } from '../lib/optional.mjs';
+import { OPTIONAL, installed } from '../lib/optional.mjs';
 
 const NEEDS = {
   postcss: 'ds7 css, contrast in audit a11y',
@@ -88,6 +88,8 @@ if (cfg?.exists) {
     'guard',
     'i18n',
     'check',
+    'update',
+    'dev',
   ];
   const unknown = Object.keys(user).filter((k) => !KNOWN.includes(k));
   if (unknown.length)
@@ -171,7 +173,7 @@ else {
 }
 
 // optional packages: which commands can run here
-const found = OPTIONAL.filter((n) => optional(n));
+const found = OPTIONAL.filter((n) => installed(n));
 const missing = OPTIONAL.filter((n) => !found.includes(n));
 row(
   'packages',

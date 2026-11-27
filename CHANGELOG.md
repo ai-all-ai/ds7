@@ -4,6 +4,44 @@ All notable changes to DS7 are recorded here. Format: [Keep a Changelog](https:/
 
 ## [Unreleased]
 
+## [2.9.0] — 2026-11-27
+
+A CSS standards release: simpler, more reusable rules with fewer artificial limits. Existing projects keep working; nothing forces a migration.
+
+### Added
+- `02-design-system/CSS-CONVENTIONS.md` is the one home of the CSS rules, split into MUST, SHOULD, MAY and MUST NOT, with before and after examples: a reuse check before new CSS, specificity and browser support of native nesting, custom properties read with inline fallbacks so parent settings (`.model-list.-compact { --card-p }`) and themes reach a component, themes through `data-theme` (light, dark, accent, nested), states from native attributes, ARIA or `data-state`, cascade layers and a table of the causes of `!important`, grouped selectors (`:where(h1, …, .price)`), Every Layout primitives as written there (`stack`, `center`, `cluster`, `grid`, `cover`) and separate small utilities (`row`, `between`, `absfill`, `ellipsis`), and the child selector for parts of components that contain other components (RSCSS).
+- `02-design-system/CSS-SOURCES.md`: each method of the profile (Atomic Design, RSCSS, CUBE CSS, Every Layout, semantic HTML and ARIA, native nesting, tokens, cascade layers, WCAG) as its authors define it, what DS7 takes and where it deliberately differs.
+- `02-design-system/CSS-SOURCES.md`: Tailwind CSS, UnoCSS, Lightning CSS, SCSS, LESS and CSS Modules as reference points: which parts DS7 takes, which it leaves, and when a project may use the tool. Tailwind, UnoCSS and Lightning CSS are recommended only where they add little code.
+- Tokens for type (`--font-sans`, `--font-display`, `--text-*`, `--leading`, `--measure`), border (`--border-w`), motion (`--dur-*`, `--ease`, set to `0s` under reduced motion), stacking (`--z-*`) and colour roles (`--color-surface`, `--color-line`, `--color-accent`, `--color-ink-600`), and a dark theme, in `TOKENS-SPEC.md` and `templates/theme.css`.
+- Package roles (DS7, DS, AI-ALL, UI and the optional dev helpers) in `ALL.md` section 0.2 and `README.md`.
+- The `ds7.css` pack directive routes agents to the CSS conventions before they write CSS.
+- `ds7 css` lists every `!important` in the stylesheets and in component `<style>` blocks as advice; `css.important: "off"` hides it.
+- `ROADMAP.md` in the repository: class-name mangler, Nano, Adaptive CSS, an own compiler, automatic factorisation, complex bundling and a critical CSS engine, all deferred.
+- Button and anchor appearance parity, link-style and transparent button modifiers with project theme tokens; ordinary components need only their base class; shared control size and spacing tokens.
+- Local dev addresses: every site gets its own name from the package (`velo.es` gives `http://velo.localhost:<port>`) and the first free port of the series 3010, 3020, 3030, ...; 3000, 4000 and 4500 are never used. `init` saves both in `ds7.config.json` (`dev.port`, `dev.name`) and points a standard `npm run dev` at the new `ds7 dev`, which keeps them from run to run and moves to the next free port of the series when another program holds this one. `"dev": false` runs plain `nuxt dev`; `--dry-run` prints the command. Customized dev scripts are kept.
+- `ds7/local/CUSTOM-LAYER.md`: a starter for the description of what a project does differently from DS7 and the UI kit, as text. `init` writes it, and `ds7 update` creates it in a project that has none. It is never overwritten, survives every update and is checked again after each one. Patches stay for small, stable edits.
+- `ds7 update --no-patches` and `update.patches: "off"` in `ds7.config.json`: update without applying the patches in `ds7/local/patches/` (for one run, or for good). The vendored files stay as shipped, the patches stay in place, and an edited vendored file is still saved to `ds7/local/edited/`.
+
+### Removed
+- `templates/ALL.project.md`: a DS7 1.x file that no command used and that contradicted the current rules.
+
+### Fixed
+- Container query examples styled the container itself, which a container query cannot do; they now style the parts.
+- `NAMING-CONVENTIONS.md` still showed a BEM name (`.s-head__eye`).
+- `ds7 update` and `ds7 init` run the project's own `@ai.all/ui` (and `@ai.all/aiall`) when it is installed, and DS7's bundled copy only as the fallback. Before, a project on a newer ui than the one DS7 depends on had its ui scaffold (`ui/ALL.md`, `ui/aiall-pack.json`, the manifest) moved back to the older bundled version by every `ds7 update`.
+- `ds7 doctor` no longer exits on Node 18 in a project that has Playwright: it checks the optional packages without loading them (Playwright stops the process on Node below 20). `ds7 console` and `ds7 lab` say that Playwright needs Node 20 instead.
+- `ds7 css` no longer reports the @ai.all/ui scaffold's `theme-base.css` and `theme.css` as orphan files while `ui/.manifest.json` exists.
+
+### Changed
+- The nesting limit ("two levels below the root at most") is removed: no fixed depth, but no deep nesting either; flatten the HTML before nesting deeper; flat selectors are fine.
+- No closed dictionary of modifier names: a modifier names the difference by meaning, and a project keeps one size scale (`-sm`/`-lg` or `-small`/`-big`).
+- State: the standard is a native state, ARIA or `data-state` instead of a dash modifier (`.-open`). The `ds7 guard` advice for `is-*` classes says so.
+- `component.vue`, `COMPONENT-ANATOMY.md` and `MODIFIER-SYSTEM.md` read component variables with fallbacks instead of declaring them on the root, and use tokens instead of raw colours.
+- `NAMING-CONVENTIONS.md` keeps the examples; the rules live only in `CSS-CONVENTIONS.md`. `ALL.md` section 3 and `SPEC.md` section 3 summarise them.
+- The `project-rules` starter skill no longer allows `__` for parts and asks for the reuse check.
+- Depends on `@ai.all/ui` `^0.4.0-beta.1` (was `^0.2.0-beta.2`), so a project gets one ui, not a nested older copy.
+- When a patch stops applying, `ds7 update` points to `CUSTOM-LAYER.md` and `--no-patches`.
+
 ## [2.8.0] — 2026-11-27
 
 ### Changed

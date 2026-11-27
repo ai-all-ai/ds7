@@ -38,6 +38,6 @@ The file `docs/BRAND.md` is created during `init` and replaces endless prompt ex
 ## 3. Technology Independence
 
 DS7 rules are designed to work across any web platform:
-- **Design Tokens:** Standard CSS custom properties (`var(--color-primary)`), usable in vanilla CSS, and in Tailwind CSS, UnoCSS, Sass or CSS-in-JS when a project uses them.
-- **Modifier System:** short inner part names under the root (`.p-card .title`) and dash-prefixed modifier classes (`.-top`, `.-compact`), compatible with HTML, Vue, React, Svelte, and Astro.
+- **Design Tokens:** Standard CSS custom properties (`var(--color-primary)`), usable in plain CSS, and in Tailwind CSS, UnoCSS, SCSS, LESS, CSS Modules or CSS-in-JS when a project uses them.
+- **Modifier System:** short inner part names under the root (`.model-card .title`), dash-prefixed modifier classes (`.-hor`, `.-compact`) and themes through `data-theme`, compatible with HTML, Vue, React, Svelte, and Astro.
 - **Guard Validation:** The built-in validator inspects class patterns in any template markup, enforcing consistent styling regardless of build tooling.

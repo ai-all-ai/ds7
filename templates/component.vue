@@ -71,51 +71,47 @@ const classes = computed(() => [
 
 <style>
 /*
- * Component styles. Not scoped: the prefix isolates them, and parents can
- * override the custom properties. Values come from the tokens in theme.css.
+ * Component styles. Not scoped: every selector starts at the root class, and parents,
+ * themes and modifiers tune the card through its variables (--card-*), which are read
+ * with a fallback and never declared on the root. Values come from the tokens in theme.css.
+ * See 02-design-system/CSS-CONVENTIONS.md.
  */
 .p-card {
-  --card-bg: var(--color-white, #fff);
-  --card-ink: var(--color-ink, #1f1b16);
-  --card-border: var(--color-ink-100, rgba(31, 27, 22, 0.08));
-
   container-type: inline-size;
   display: flex;
   flex-direction: column;
-  background: var(--card-bg);
-  color: var(--card-ink);
-  border: 1px solid var(--card-border);
+  gap: var(--card-gap, var(--space-3, 12px));
+  padding: var(--card-p, var(--space-4, 16px));
+  background: var(--card-bg, var(--color-white, #fff));
+  border: var(--border-w, 1px) solid var(--card-line, var(--color-line, rgba(31, 27, 22, 0.08)));
   border-radius: var(--radius-md, 12px);
-  padding: var(--space-4, 16px);
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
+    transform var(--dur-1, 0.15s) var(--ease, ease),
+    box-shadow var(--dur-1, 0.15s) var(--ease, ease);
 
-.p-card.-top {
-  --card-border: var(--color-sun, #ffd84d);
-  box-shadow: var(--shadow-lift);
-}
-.p-card.-top .title {
-  font-weight: 700;
-}
+  &.-top {
+    --card-line: var(--color-accent, #ffd84d);
+    box-shadow: var(--shadow-lift);
 
-.p-card.-dark {
-  --card-bg: var(--color-ink-950, #12100d);
-  --card-ink: #ffffff;
-  --card-border: rgba(255, 255, 255, 0.12);
-}
-
-.p-card.-compact {
-  padding: var(--space-2, 8px);
-}
-
-@container (max-width: 320px) {
-  .p-card {
-    padding: var(--space-2, 8px);
+    .title {
+      font-weight: 700;
+    }
   }
-  .p-card .title {
-    font-size: 0.95rem;
+
+  &.-dark {
+    --card-bg: var(--color-ink-950, #12100d);
+    --card-line: transparent;
+    color: var(--color-white, #fff);
+  }
+
+  &.-compact {
+    --card-p: var(--space-2, 8px);
+  }
+
+  @container (width < 20rem) {
+    .title {
+      font-size: var(--text-base, 1rem);
+    }
   }
 }
 </style>

@@ -12,7 +12,7 @@
 //   ds7/aiall-pack.json    pack manifest, generated from this version; overwritten by `update`
 //   ds7/VERSION            installed version; written by `init` and `update`
 //   ds7/FILES              checksums of the shipped files, so `update` can keep local edits
-//   ds7/local/**           the project's own notes and patches; never overwritten
+//   ds7/local/**           the project's own notes, custom layer and patches; never overwritten
 //   ALL.md (project root)  AI-ALL routing file; its packs block is managed by AI-ALL,
 //                          the text outside that block is the project's own
 
@@ -135,6 +135,13 @@ function packManifest() {
         title: 'Atomic architecture',
         summary: 'Read before creating or changing components, variants or modifiers.',
         doc: doc('01-architecture/COMPONENT-ANATOMY.md'),
+      },
+      {
+        id: 'ds7.css',
+        title: 'CSS conventions',
+        summary:
+          'Read before writing or changing CSS: reuse check, names, nesting, modifiers, variables, themes, states, layers.',
+        doc: doc('02-design-system/CSS-CONVENTIONS.md'),
       },
       {
         id: 'ds7.brand',
@@ -330,15 +337,16 @@ function cmdPatch(args) {
 
 function runAiall(args) {
   let bin;
-  try {
-    bin = require.resolve('@ai.all/aiall/bin/cli.js');
-  } catch {
-    const targetBin = path.join(TARGET, 'node_modules', '@ai.all', 'aiall', 'bin', 'cli.js');
-    const siblingBin = path.resolve(PKG, '..', 'aiall', 'bin', 'cli.js');
-    if (fs.existsSync(targetBin)) {
-      bin = targetBin;
-    } else if (fs.existsSync(siblingBin)) {
-      bin = siblingBin;
+  // the project's own copy first, then the one bundled with DS7 (same order as runUi)
+  const targetBin = path.join(TARGET, 'node_modules', '@ai.all', 'aiall', 'bin', 'cli.js');
+  const siblingBin = path.resolve(PKG, '..', 'aiall', 'bin', 'cli.js');
+  if (fs.existsSync(targetBin)) {
+    bin = targetBin;
+  } else {
+    try {
+      bin = require.resolve('@ai.all/aiall/bin/cli.js');
+    } catch {
+      if (fs.existsSync(siblingBin)) bin = siblingBin;
     }
   }
   if (bin) {
@@ -355,16 +363,20 @@ function runAiall(args) {
   return r.status === 0;
 }
 
-// Run the bundled UI CLI with the project as cwd so it can manage the Nuxt and AI-ALL scaffold.
+// Run the UI CLI with the project as cwd so it can manage the Nuxt and AI-ALL scaffold. The project's own copy of
+// @ai.all/ui wins: the version it installed is the one whose scaffold it keeps. DS7's bundled copy (inside ds7's own
+// node_modules, often older) is only the fallback, otherwise `ds7 update` would move the scaffold back to it.
 function runUi(args) {
   let bin;
-  try {
-    bin = require.resolve('@ai.all/ui/bin/ui.js');
-  } catch {
-    const targetBin = path.join(TARGET, 'node_modules', '@ai.all', 'ui', 'bin', 'ui.js');
-    const siblingBin = path.resolve(PKG, '..', 'ui', 'bin', 'ui.js');
-    if (fs.existsSync(targetBin)) bin = targetBin;
-    else if (fs.existsSync(siblingBin)) bin = siblingBin;
+  const targetBin = path.join(TARGET, 'node_modules', '@ai.all', 'ui', 'bin', 'ui.js');
+  const siblingBin = path.resolve(PKG, '..', 'ui', 'bin', 'ui.js');
+  if (fs.existsSync(targetBin)) bin = targetBin;
+  else {
+    try {
+      bin = require.resolve('@ai.all/ui/bin/ui.js');
+    } catch {
+      if (fs.existsSync(siblingBin)) bin = siblingBin;
+    }
   }
   if (bin)
     return (
@@ -444,7 +456,7 @@ function ensureGitignore() {
 }
 
 // The brand questions of `init`, asked only in a terminal (CI and --yes skip them)
-async function promptQuestionnaire() {
+async function promptQuestionnaire(defaultPort) {
   if (!process.stdin.isTTY || process.argv.includes('--yes') || process.argv.includes('-y')) {
     return null;
   }
@@ -467,14 +479,17 @@ async function promptQuestionnaire() {
   );
   const name = await ask('Brand or project name', defaultName);
   const color = await ask('Primary brand color hex', '#e5a93c');
-  const port = await ask('Local dev server port', '3000');
+  const port = await ask(
+    'Local dev server port (free, from the series 3010, 3020, ...)',
+    defaultPort,
+  );
   const locales = await ask('Target languages (comma-separated)', 'es, en');
   rl.close();
   return { name, color, port, locales };
 }
 
 // docs/BRAND.md from the template, filled with the answers when there are any
-function ensureBrandSpec(answers) {
+function ensureBrandSpec(answers, dev) {
   const brandPath = path.join(TARGET, 'docs', 'BRAND.md');
   if (!fs.existsSync(brandPath)) {
     const src = path.join(PKG, 'templates', 'BRAND.md');
@@ -487,16 +502,6 @@ function ensureBrandSpec(answers) {
           `- **Project / Brand Name:** ${answers.name}`,
         );
       }
-      if (answers.port) {
-        content = content.replace(
-          /- \*\*Dev Server Port:\*\* .*/,
-          `- **Dev Server Port:** \`${answers.port}\``,
-        );
-        content = content.replace(
-          /- \*\*Local Dev URL:\*\* .*/,
-          `- **Local Dev URL:** \`http://localhost:${answers.port}\``,
-        );
-      }
       if (answers.color) {
         content = content.replace(
           /\| `--color-brand` \| `#[a-fA-F0-9]+` \|/,
@@ -506,6 +511,11 @@ function ensureBrandSpec(answers) {
       if (answers.locales) {
         content = content.replace(/- \*\*Languages:\*\* .*/, `- **Languages:** ${answers.locales}`);
       }
+    }
+    if (dev) {
+      content = content
+        .replace(/- \*\*Dev Server Port:\*\* .*/, `- **Dev Server Port:** \`${dev.port}\``)
+        .replace(/- \*\*Local Dev URL:\*\* .*/, `- **Local Dev URL:** \`${dev.url}\``);
     }
     fs.writeFileSync(brandPath, content);
     ok('docs/BRAND.md created (brand specification & intake)');
@@ -527,6 +537,7 @@ function ensureProjectFiles() {
     ['templates/ds7.config.json', 'ds7.config.json'],
     ['templates/local/README.md', 'ds7/local/README.md'],
     ['templates/local/RECURRING-RULES.md', 'ds7/local/RECURRING-RULES.md'],
+    ['templates/local/CUSTOM-LAYER.md', 'ds7/local/CUSTOM-LAYER.md'],
     // a project whose own workflow already runs the DS7 checks gets no second one
     ...(ownCiRunsDs7() ? [] : [['templates/workflows/ds7.yml', '.github/workflows/ds7.yml']]),
     // icons and error pages (`ds7 icons`): the site's own copies, kept when they exist
@@ -585,6 +596,20 @@ function registerSkills(created) {
   ok(`ALL.md: ${rows.length} project skill(s) registered`);
 }
 
+// "dev" in ds7.config.json: the port and the name of the local address, kept from run to run (ds7 dev)
+function ensureDevConfig(dev) {
+  const file = path.join(TARGET, 'ds7.config.json');
+  try {
+    const cfg = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
+    if (cfg.dev !== undefined) return;
+    cfg.dev = { port: dev.port, name: dev.name };
+    fs.writeFileSync(file, `${JSON.stringify(cfg, null, 2)}\n`);
+    ok(`ds7.config.json: dev port ${dev.port}, name ${dev.name}`);
+  } catch {
+    info('ds7.config.json is not valid JSON; the dev port was not saved');
+  }
+}
+
 // Makefile from the template, when the project has none
 function ensureMakefile() {
   const mkPath = path.join(TARGET, 'Makefile');
@@ -598,13 +623,19 @@ function ensureMakefile() {
 }
 
 // The DS7 npm scripts, added to package.json where missing
-function ensurePackageScripts() {
+function ensurePackageScripts(init) {
   const pkgPath = path.join(TARGET, 'package.json');
   if (!fs.existsSync(pkgPath)) return;
   try {
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
     pkg.scripts = pkg.scripts || {};
     let changed = false;
+    let dev;
+    if (init?.dev && (!pkg.scripts.dev || pkg.scripts.dev === 'nuxt dev')) {
+      pkg.scripts.dev = 'ds7 dev';
+      dev = init.dev;
+      changed = true;
+    }
     if (!pkg.scripts.guard) {
       pkg.scripts.guard = 'ds7 guard';
       changed = true;
@@ -639,13 +670,31 @@ function ensurePackageScripts() {
         'package.json scripts added: "guard", "guard:strict", "check", "check:strict", "graph", "graph:check", "layout", "docs:check", "audit"',
       );
     }
+    return dev;
   } catch {}
 }
 
 async function cmdInit() {
   console.log(`\n${C.bold}${C.cyan}DS7 v${version} — setup${C.reset}\n`);
 
-  const answers = await promptQuestionnaire();
+  // the local address: a name from the package and a free port of the series 3010, 3020, ... (never 3000 or 4000)
+  const devLib = await import('./lib/dev.mjs');
+  let pkgName = path.basename(TARGET);
+  try {
+    pkgName =
+      JSON.parse(fs.readFileSync(path.join(TARGET, 'package.json'), 'utf8')).name || pkgName;
+  } catch {}
+  const freePort = (await devLib.freePort()) ?? devLib.FIRST;
+  const answers = await promptQuestionnaire(String(freePort));
+  let devPort = Number(answers?.port ?? freePort);
+  if (!devLib.validPort(devPort)) {
+    info(
+      `Port ${answers?.port} is not used for local sites (3000, 4000 and 4500 never are); taking ${freePort}.`,
+    );
+    devPort = freePort;
+  }
+  const devName = devLib.devName(pkgName);
+  const devInfo = { port: devPort, name: devName, url: devLib.devUrl(devName, devPort) };
 
   for (const [rel, dest] of standardFiles()) copyOne(rel, dest, false);
   writePackManifest(false);
@@ -670,10 +719,12 @@ async function cmdInit() {
   legacyWarnings();
 
   ensureGitignore();
-  ensureBrandSpec(answers);
+  const dev = ensurePackageScripts({ dev: devInfo });
+  ensureBrandSpec(answers, dev);
   ensureProjectFiles();
+  if (dev) ensureDevConfig(dev);
   ensureMakefile();
-  ensurePackageScripts();
+  if (dev) info(`Local development: ${dev.url} (npm run dev, which runs ds7 dev)`);
 
   console.log(`\n${C.bold}${C.green}DS7 is installed.${C.reset}`);
   console.log(
@@ -703,8 +754,16 @@ function cmdSync() {
   }
 }
 
-function cmdUpdate() {
+// Patches are applied after an update unless the project turned them off for good ("update": { "patches": "off" } in
+// ds7.config.json) or for this run (`ds7 update --no-patches`). A live project that changed a lot is better served by
+// ds7/local/CUSTOM-LAYER.md, a description of what is different, than by a patch that stops applying.
+function patchesOff(args) {
+  return args.includes('--no-patches') || userConfig(TARGET).update?.patches === 'off';
+}
+
+function cmdUpdate(args = []) {
   console.log(`\n${C.yellow}Updating the standard to v${version}…${C.reset}\n`);
+  const noPatches = patchesOff(args);
   if (!fs.existsSync(DS7)) {
     err('ds7/ not found. Run `npx @ai.all/ds7` (init) first.');
     process.exitCode = 1;
@@ -712,7 +771,7 @@ function cmdUpdate() {
   }
   // keep what the project changed in the vendored files
   const known = readFilesList();
-  const carried = patchedFiles();
+  const carried = noPatches ? new Set() : patchedFiles();
   const saved = [];
   if (known)
     for (const [, dest] of standardFiles()) {
@@ -728,7 +787,9 @@ function cmdUpdate() {
   writePackManifest(true);
   writeVersion();
   writeFilesList();
-  const failed = applyPatches();
+  const failed = noPatches ? [] : applyPatches();
+  const skipped = noPatches ? patches() : [];
+  ensureCustomLayer();
 
   if (!runAiall(['sync'])) {
     err('Sync failed. Run: npx @ai.all/aiall sync');
@@ -753,15 +814,36 @@ function cmdUpdate() {
     info(
       `ds7/${rel} had a local edit that no patch carries: it is saved in ds7/local/edited/${rel}. Put the edit back and run ds7 patch ${rel}`,
     );
+  for (const f of skipped)
+    info(`patch ${f} not applied (patches are off): it stays in ds7/local/patches/`);
   for (const [f, why] of failed)
     err(
       `patch ${f} does not apply any more (${why}): upstream changed the same lines; edit by hand, then ds7 patch <file>`,
     );
-  if (failed.length) process.exitCode = 1;
+  if (failed.length) {
+    process.exitCode = 1;
+    info(
+      'A patch that stops applying is better written as text: describe the difference in ds7/local/CUSTOM-LAYER.md, delete the patch, or run ds7 update --no-patches',
+    );
+  }
+  if (skipped.length)
+    info(
+      'Describe what those patches carried in ds7/local/CUSTOM-LAYER.md, then delete them; a vendored file edited by hand is saved in ds7/local/edited/',
+    );
   console.log(
     `\n${C.green}Standard updated to v${version}. See ds7/CHANGELOG.md for what changed.${C.reset}`,
   );
   info('The root ALL.md outside the aiall packs block was not changed.\n');
+}
+
+// The description of the project's own layer: a starter on the first update of an older project, never overwritten
+function ensureCustomLayer() {
+  const dest = path.join(TARGET, 'ds7', 'local', 'CUSTOM-LAYER.md');
+  if (fs.existsSync(dest) || !fs.existsSync(path.join(DS7, 'local'))) return;
+  if (copyOne('templates/local/CUSTOM-LAYER.md', dest, false))
+    info(
+      'ds7/local/CUSTOM-LAYER.md created: describe there what this project does differently from DS7',
+    );
 }
 
 // True when a workflow in .github/workflows (other than ds7.yml) already runs the DS7 checks
@@ -802,7 +884,7 @@ const GUARD_SUFFIXES = [
 ];
 
 // Settings of the guard, "guard" in ds7.config.json; every rule can be switched off.
-//  stateClasses   "allow" | "warn" (default) | "deny": what to do with is-* state classes (the standard is a dash modifier, .-active)
+//  stateClasses   "allow" | "warn" (default) | "deny": what to do with is-* state classes (the standard is native, ARIA or data-state)
 //  allowClasses   class names never reported
 //  suffixes       words that make a class a baked-in modifier (card-big); [] turns that rule off
 //  dirs           folders searched for classes
@@ -932,7 +1014,7 @@ function printStateAdvice(states) {
   if (!states.size) return;
   const list = [...states.keys()].sort();
   info(
-    `${list.length} is-* state class(es) (${list.slice(0, 4).join(', ')}${list.length > 4 ? ', …' : ''}): the standard is a dash modifier (.-active). Set guard.stateClasses to "deny" to enforce, or "allow" to silence.`,
+    `${list.length} is-* state class(es) (${list.slice(0, 4).join(', ')}${list.length > 4 ? ', …' : ''}): the standard is a native state, ARIA or data-state ([aria-expanded='true']). Set guard.stateClasses to "deny" to enforce, or "allow" to silence.`,
   );
 }
 
@@ -1396,6 +1478,7 @@ function cmdCheck() {
 
 // Commands implemented as scripts in bin/cmd: they run in the project root and pass their arguments and exit code on.
 const SCRIPT_COMMANDS = [
+  'dev',
   'graph',
   'layout',
   'docs',
@@ -1472,7 +1555,8 @@ DS7 ${version}
 
   npx @ai.all/ds7           install standard, brand intake and quality scripts (init)
   npx @ai.all/ds7 sync      sync agent entrypoints (AI-ALL sync)
-  npx @ai.all/ds7 update    update ds7/ to this version and refresh the pack
+  npx @ai.all/ds7 update    update ds7/ to this version and refresh the pack (--no-patches: do not apply local patches)
+  npx @ai.all/ds7 dev       Nuxt dev server on http://<name>.localhost:<port>, a free port from 3010 kept in ds7.config.json
   npx @ai.all/ds7 guard     check modifier class names and atomic layer rules (--strict)
   npx @ai.all/ds7 check     run all quality gates: guard, tokens, i18n, hygiene, layout (--strict)
   npx @ai.all/ds7 images    responsive WebP variants (--check); "images optimize", "images strip", "images dupes"
@@ -1501,7 +1585,7 @@ const cmd = process.argv[2];
 if (cmd === '--version' || cmd === '-v') console.log(version);
 else if (cmd === '--help' || cmd === '-h' || cmd === 'help') cmdHelp();
 else if (cmd === 'sync') cmdSync();
-else if (cmd === 'update') cmdUpdate();
+else if (cmd === 'update') cmdUpdate(process.argv.slice(3));
 else if (cmd === 'guard') cmdGuard();
 else if (cmd === 'check') cmdCheck();
 else if (cmd === 'audit') cmdAudit(process.argv.slice(3));

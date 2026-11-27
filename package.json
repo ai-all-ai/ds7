@@ -1,6 +1,6 @@
 {
   "name": "@ai.all/ds7",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "description": "AI-ready architecture standard for web projects: brand-first foundations, Atomic Design and agent rules in one place",
   "keywords": [
     "architecture",
@@ -54,7 +54,7 @@
   },
   "dependencies": {
     "@ai.all/aiall": "^1.0.0",
-    "@ai.all/ui": "^0.2.0-beta.2"
+    "@ai.all/ui": "^0.4.0-beta.1"
   },
   "peerDependencies": {
     "playwright": ">=1.40",

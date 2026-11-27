@@ -8,7 +8,7 @@
 > Project-specific rules live in the root `ALL.md`, below the AI-ALL packs block (`<!-- aiall:begin packs -->` to `<!-- aiall:end packs -->`). AI-ALL keeps that text on sync. Longer project documents for agents live in `ds7/local/`, which `ds7 update` never writes; the root `ALL.md` links to them. Where project rules and this file disagree, the project rules win for that project and the disagreement is recorded in `docs/DECISIONS.md`.
 > This file is the `ds7` pack of AI-ALL. The root `ALL.md` lists it in the packs block. Every entrypoint (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/*`, `.windsurf/rules/*`, `.github/copilot-instructions.md`) points to the root `ALL.md`. Sync them with `npx @ai.all/aiall sync`.
 
-**Version:** 2.8.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, CSS custom properties (Tailwind CSS v4 optional), `@nuxtjs/i18n`, static generation.
+**Version:** 2.9.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, plain CSS with custom properties and native nesting (Tailwind, UnoCSS, SCSS and other tools optional), `@nuxtjs/i18n`, static generation.
 
 ---
 
@@ -45,6 +45,20 @@ This approach is established practice, not an invention of DS7. Related referenc
 
 ---
 
+## 0.2 Packages and their roles
+
+| Package | Role |
+|---|---|
+| **DS7** (`@ai.all/ds7`) | The canonical standard: rules, recommendations, agent instructions, checks and production optimisation. |
+| **DS** (the CSS layer) | The CSS implementation of the standard: tokens, themes, base styles, helpers and utilities. Today it ships as the foundation of `@ai.all/ui` (`aiall-ui-foundation`) and the project's `theme.css`. |
+| **AI-ALL** (`@ai.all/aiall`) | The same behaviour for every AI agent, and delivery of the current DS7 instructions as a pack. |
+| **UI** (`@ai.all/ui`) | Reusable components and extra development tools. |
+| **DevTools, Brandbook, Asset Gallery** | Optional development helpers from UI. They are left out of the public production build; UI components that pages use stay in it. |
+
+Each rule has one home: CSS rules live in DS7, their implementation in DS, components in UI. A conflict between packages is resolved in favour of DS7 and reported.
+
+---
+
 ## 1. Languages
 
 - **Code, comments, identifiers, commit messages, docs in `ds7/` and `docs/`:** English. One language per file: never mix languages in code or comments.
@@ -73,19 +87,20 @@ Full model: `01-architecture/ATOMIC-DESIGN.md`.
 
 ---
 
-## 3. CSS naming and modifiers
+## 3. CSS
 
-Full rules: `02-design-system/NAMING-CONVENTIONS.md` and `01-architecture/MODIFIER-SYSTEM.md`.
+Full rules, with before and after examples: `02-design-system/CSS-CONVENTIONS.md`. Optional tools (Tailwind, UnoCSS, SCSS, LESS, CSS Modules): `02-design-system/CSS-SOURCES.md`.
 
-- **Base name:** short kebab-case: `.p-card`, `.btn`, `.field`.
-- **Inner part:** a short name under the root, scoped in CSS: `.p-card .title`. No `__` and no BEM.
-- **Modifier:** a **separate** class starting with a dash: `.-top`, `.-compact`, `.-lg`. Combine freely: `class="p-card -top -compact"`.
-- **Forbidden:** appending a word to a base name (`.btn-lg`, `.card-big`, `.hero-active`). Use `.btn.-lg`.
-- **State:** a dash modifier like any other variant: `.menu.-open`, `.tab.-active`, `.btn.-loading`. Projects that already use `is-` keep them; `guard.stateClasses` in `ds7.config.json` decides whether the guard warns, fails or stays silent.
-- **Page context:** `body.page-<slug>` set by `usePageSeo`. Override shared components through that class or through CSS custom properties. Never through a new file.
-- **Colour in components:** tokens only (`var(--color-…)`). No raw hex or `rgb()` in component CSS.
+**Before writing new CSS**, check in this order and use the first that fits: an existing component or modifier, base element styles, inheritance from the parent, a token or a component variable, a parent setting, a grouped selector, a helper, a utility. Then write the shortest rule that works.
+
+- **MUST:** semantic HTML first; WCAG 2.2 AA (contrast, focus, keyboard, reduced motion); values from tokens, no raw colours in components; selectors start at the component's root; one mechanism per state (native, then ARIA, then `data-state`).
+- **SHOULD:** short root names (`.btn`, `.hero`, `.model-card`); dash modifiers that name only the difference (`.-hor`, `.-sm`, `.-dark`, `.-compact`); parts nested under the root, with a class only when the tag is not enough; native CSS nesting; component variables read with a fallback (`var(--card-p, var(--space-4))`) so a parent or a theme can set them; themes through `data-theme`; priority through order and `@layer`.
+- **MAY:** flat selectors where simpler; an optional tool with a reason in `docs/DECISIONS.md`; layout primitives after Every Layout (`stack`, `center`, `cluster`, `grid`, `cover`), small utilities (`row`, `between`, `absfill`, `ellipsis`) and grouped selectors (`:where(h1, h2, .price)`) once a need repeats.
+- **MUST NOT:** BEM in new code; a word appended to a root (`.btn-lg`; write `.btn.-lg`); `!important` in components; a copy of a component for a page (use a modifier, a variable or `body.page-<slug>`); a second class for a state that ARIA or a native attribute already holds; helpers or merged rules made in advance for styles that only look alike.
+- **No artificial limits:** no closed list of names, no forced splitting of components, no nesting depth limit. These three specifically must not be forced on you; other limits (page style lines, performance budgets) are configurable via `ds7.config.json` and can be turned off or adjusted. Do not nest deeply, and flatten the HTML first (fewer wrapper elements, `gap` and layout helpers instead of spacing `div`s).
 - **Yellow accent (`--color-sun`) is never text.** It is a fill, a badge background or a marker.
-- **Enforcement:** Run `npx @ai.all/ds7 guard` (`07-testing/VALIDATORS-AND-GUARDS.md`). It forbids baked-in modifier classes, checks atomic layer boundaries, and flags pages exceeding 40 lines of scoped CSS. Every rule is set or switched off in `ds7.config.json` (`CONFIG.md`).
+- **Existing projects** keep their method; nothing forces a migration. `guard.stateClasses` in `ds7.config.json` decides how `is-*` classes are reported.
+- **Enforcement:** `npx @ai.all/ds7 guard` (appended modifier words, `is-*`, layer boundaries, page style budgets), `ds7 css` (dead classes; repeated rules and `!important` as advice). Every rule is set or switched off in `ds7.config.json` (`CONFIG.md`).
 
 ---
 
@@ -244,7 +259,7 @@ Full strategy: `08-token-optimization/TOKEN-STRATEGY.md`.
 
 | ID | Pattern | Where |
 |---|---|---|
-| `BTN-01` | Primary button (sun fill) | `02-design-system/BRANDBOOK-SANDBOX.md` |
+| `BTN-01` | Default button (`.btn`) | `02-design-system/BRANDBOOK-SANDBOX.md` |
 | `BTN-02` | Outline button | same |
 | `CTL-01` | Segmented switch | same |
 | `COUNTER-01` | Bounded numeric counter with − / + | same |
@@ -254,4 +269,4 @@ Full strategy: `08-token-optimization/TOKEN-STRATEGY.md`.
 | `SLD-01` | Card slider with scroll-snap | same |
 | `HOOK-01` | Overlap hook under the cover | same |
 
-**Before you finish any task, check:** every file in its place (`ds7 layout`) · graph current (`ds7 graph --check`) · no hard-coded UI text · no raw colours · no copied component · every image sized and routed through the image component · `npx @ai.all/ds7 check` clean · no dead CSS or unused component (`ds7 css`, `ds7 unused`) · console clean (`ds7 console`) · i18n keys in all locales · axe clean at 390 / 820 / 1440 · CHANGELOG line added · no junk left in the repo · security and cache headers and the 404 page unchanged or documented · no new advice lines from `ds7 audit perf`.
+**Before you finish any task, check:** every file in its place (`ds7 layout`) · graph current (`ds7 graph --check`) · no hard-coded UI text · no raw colours · existing components, tokens and helpers reused before new CSS · no `!important` · no copied component · every image sized and routed through the image component · `npx @ai.all/ds7 check` clean · no dead CSS or unused component (`ds7 css`, `ds7 unused`) · console clean (`ds7 console`) · i18n keys in all locales · axe clean at 390 / 820 / 1440 · CHANGELOG line added · no junk left in the repo · security and cache headers and the 404 page unchanged or documented · no new advice lines from `ds7 audit perf`.

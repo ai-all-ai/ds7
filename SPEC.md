@@ -3,14 +3,14 @@
 > **How it fits with AI-ALL.** [AI-ALL](https://github.com/ai-all-ai/aiall) (`@ai.all/aiall`) creates the agent entrypoints and the routing file, and keeps them in sync. This document is delivered to agents as the `ds7` pack of AI-ALL. AI-ALL works without DS7; for web projects, install both.
 
 
-Version 2.8.0. This document is the technical baseline. Rules for agents are in `ALL.md`; this file describes the stack, the layout and the quality gates.
+Version 2.9.0. This document is the technical baseline. Rules for agents are in `ALL.md`; this file describes the stack, the layout and the quality gates.
 
 ---
 
 ## 1. Stack
 
 - **Framework:** Nuxt 4, Vue 3.5+, Composition API with `<script setup lang="ts">`.
-- **Styling:** plain CSS with custom properties defined in `theme.css`, native CSS nesting and cascade layers. Tailwind CSS v4, UnoCSS and Lightning CSS are optional. See `02-design-system/CSS-SOURCES.md`.
+- **Styling:** plain CSS with custom properties defined in `theme.css`, native CSS nesting and cascade layers, themes through `data-theme`. Tailwind CSS, UnoCSS, SCSS, LESS, CSS Modules and Lightning CSS are optional. See `02-design-system/CSS-SOURCES.md`.
 - **Rendering:** static generation (`nuxt generate`), prerendered routes, `sitemap.xml`, `robots.txt`, pre-compressed output (`.br`, `.gz`).
 - **Delivery:** nginx (`templates/nginx.conf`) or Caddy (`templates/Caddyfile`), or a CDN; cache and security headers as in `03-performance-web-vitals/DELIVERY-AND-CACHING.md`.
 - **i18n:** `@nuxtjs/i18n`, prefix-except-default strategy, one locale hub in `i18n/locales/`.
@@ -59,19 +59,22 @@ project-root/
 
 | Role | Format | Example |
 |---|---|---|
-| Base component | short kebab-case | `.p-card`, `.btn`, `.field` |
-| Inner part | short name under the root, scoped in CSS | `.p-card .title` |
-| Modifier | separate class with a leading dash | `.-top`, `.-compact`, `.-lg` |
-| State | dash modifier, like any variant | `.menu.-open`, `.tab.-active` |
+| Base component | short kebab-case | `.btn`, `.hero`, `.model-card` |
+| Inner part | short name under the root, only when the tag is not enough | `.model-card .body` |
+| Modifier | separate class with a leading dash | `.-hor`, `.-sm`, `.-dark`, `.-compact` |
+| State | native, ARIA or `data-state` | `:disabled`, `[aria-expanded='true']`, `[data-state='loading']` |
+| Theme | `data-theme` on any element | `[data-theme='dark']` |
 | Page context | class on `<body>` | `body.page-home` |
 
-Older projects use `is-` state classes (`.is-open`). `guard.stateClasses` decides how `ds7 guard` treats them: `"warn"` (default) lists them as advice, `"deny"` fails, `"allow"` stays silent.
+Full rules: `02-design-system/CSS-CONVENTIONS.md`. Older projects use `is-` state classes (`.is-open`). `guard.stateClasses` decides how `ds7 guard` treats them: `"warn"` (default) lists them as advice, `"deny"` fails, `"allow"` stays silent.
 
 ---
 
 ## 4. Targets
 
 These are design targets for a finished page on a mid-range phone over a 4G connection. They are not measured results. Measure them on the target device and record the results in `docs/METRICS.md`.
+
+**Note:** The targets above are goals for real-device performance. Lab tools in CI or sandbox may not produce reliable LCP or INP values; use them for regressions only, not as proof. Never write "Lighthouse 100/100" or similar as a fact in code, docs or UI.
 
 | Metric | Target |
 |---|---|
@@ -84,8 +87,6 @@ These are design targets for a finished page on a mid-range phone over a 4G conn
 | Cumulative Layout Shift | ≤ 0.01 (CLS 0 is the aim) |
 | Total Blocking Time | ≤ 200 ms |
 | Interaction to Next Paint | ≤ 200 ms |
-
-Lab tools in CI or in a sandbox do not produce reliable LCP or INP values. Use them for regressions only, not as proof.
 
 ---
 

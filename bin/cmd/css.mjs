@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // `ds7 css`: audit of the global stylesheets, and `ds7 css diff` to prove a CSS refactor changed nothing.
 //   ds7 css [--all]             orphan files (in the folder, not imported by the entry), dead classes (no template, script or
-//                                locale names them), and as advice: selectors repeated in one context, identical declaration blocks
+//                                locale names them), and as advice: selectors repeated in one context, identical declaration blocks,
+//                                !important in the stylesheets and in the <style> blocks of the sources
 //   ds7 css diff [REV] [FILE…]  selector + property pairs lost or gained against git REV (default HEAD) in the CSS of FILE…
 //                                (default: the changed .css and .vue files); exits 1 when anything was lost or gained
-// Settings: "css" in ds7.config.json: dir, entry, sources, orphans (true/false), dead (true/false), repeats ("warn"/"off").
+// Settings: "css" in ds7.config.json: dir, entry, sources, orphans (true/false), dead (true/false), repeats and important
+// ("warn"/"off").
 // Needs postcss from the project (Nuxt and Vite bring it).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -100,15 +102,19 @@ function audit() {
     ...read(entryFile).matchAll(/@import\s+(?:url\()?["']\.?\/?([^"')]+\.css)["']/g),
   ].map((m) => m[1]);
   const files = [cfg.entry, ...imported];
+  // The @ai.all/ui scaffold writes theme-base.css (a token reference for agents) and theme.css (an empty stub);
+  // neither has to be imported, so they are not orphans while the scaffold is present.
+  const scaffold = fs.existsSync('ui/.manifest.json') ? ['theme-base.css', 'theme.css'] : [];
   const orphans = cfg.orphans
-    ? fs.readdirSync(cfg.dir).filter((f) => f.endsWith('.css') && !files.includes(f))
+    ? fs
+        .readdirSync(cfg.dir)
+        .filter((f) => f.endsWith('.css') && !files.includes(f) && !scaffold.includes(f))
     : [];
 
-  const src = cfg.sources
+  const sourceFiles = cfg.sources
     .flatMap(walk)
-    .filter((f) => /\.(vue|ts|tsx|js|mjs|jsx|json|html|md)$/.test(f) && !f.startsWith(cfg.dir))
-    .map(read)
-    .join('\n');
+    .filter((f) => /\.(vue|ts|tsx|js|mjs|jsx|json|html|md)$/.test(f) && !f.startsWith(cfg.dir));
+  const src = sourceFiles.map(read).join('\n');
   const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const seen = (t) => new RegExp(`(^|[^\\w-])${esc(t)}(?![\\w-])`).test(src);
   const quoted = (t) => new RegExp(`['"\`]${esc(t)}['"\`]`).test(src);
@@ -134,6 +140,8 @@ function audit() {
 
   const selectors = new Map();
   const blocks = new Map();
+  // !important: the places it is written, in the stylesheets and in component <style> blocks
+  const important = [];
   const classes = new Map();
   let rules = 0;
   for (const name of files) {
@@ -156,6 +164,9 @@ function audit() {
           .matchAll(/\.(-?[a-zA-Z][\w-]*)/g))
           if (!classes.has(m[1])) classes.set(m[1], at);
       }
+      for (const n of rule.nodes)
+        if (n.type === 'decl' && n.important)
+          important.push(`${path.posix.join(cfg.dir, name)}:${n.source.start.line} ${n.prop}`);
       const decls = rule.nodes
         .filter((n) => n.type === 'decl')
         .map((n) => `${n.prop}:${n.value}`)
@@ -201,6 +212,24 @@ function audit() {
       advice.push([
         `${blks.length} identical declaration block(s) in several rules (a shared rule or a token?)`,
         blks.map(([, at]) => at.join('  |  ')),
+      ]);
+    }
+  }
+  if (cfg.important !== 'off') {
+    for (const f of sourceFiles.filter((f) => f.endsWith('.vue'))) {
+      const text = read(f);
+      for (const m of text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)) {
+        const start = text.slice(0, m.index).split('\n').length - 1;
+        m[1].split('\n').forEach((line, i) => {
+          if (/!\s*important/i.test(line)) important.push(`${f}:${start + i + 1}`);
+        });
+      }
+    }
+    if (important.length) {
+      notes.push(`${important.length} !important declaration(s)`);
+      advice.push([
+        `${important.length} !important declaration(s) (order, @layer, a modifier or a variable instead? CSS-CONVENTIONS.md, section 8)`,
+        important,
       ]);
     }
   }
