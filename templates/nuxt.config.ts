@@ -1,5 +1,3 @@
-import tailwindcss from '@tailwindcss/vite';
-
 /**
  * DS7 reference Nuxt 4 configuration.
  * Static generation, inlined component CSS, pre-compressed output, one i18n hub.
@@ -12,10 +10,6 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   modules: ['@nuxtjs/i18n'],
-
-  vite: {
-    plugins: [tailwindcss()],
-  },
 
   // Critical CSS, see 03-performance-web-vitals/CRITICAL-CSS.md. This is the Nuxt 4 default, written out so the
   // behaviour does not change silently with a framework update: component styles are inlined, global CSS is linked.

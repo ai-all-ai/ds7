@@ -30,7 +30,7 @@ Both a person and an agent understand that without a second description.
 
 ## 2. What the sandbox shows
 
-The sandbox comes from [`@ai.all/ui`](https://github.com/ai-all-ai/ui): Setup (`npx @ai.all/ds7`) runs `ui init`, which writes `app/pages/ui.vue`, `app/assets/css/theme-base.css` and `base.css`, and registers the ui pack. The page has five tabs:
+The sandbox comes from [`@ai.all/ui`](https://github.com/ai-all-ai/ui), a dependency of DS7. Run `npx ds7 init` after installing DS7. It registers the UI module and pack, and creates the Brandbook page and project CSS entry when missing. Put brand overrides in `app/assets/css/theme.css` and follow the cascade rules in [Tokens](TOKENS-SPEC.md). The optimized UI package excludes the managed sandbox from production by default. Enable `aiallUi.brandbook: true` when it is needed in a deployed review environment. The page has five tabs:
 
 1. **Foundations:** every colour token in groups with its live value and contrast, type, space, radius, shadow.
 2. **Base elements:** a sample page in plain HTML with each tag and its purpose in the margin.

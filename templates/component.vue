@@ -42,16 +42,16 @@ const classes = computed(() => [
 <template>
   <article :class="classes" data-ref="CARD-01">
     <!-- Artwork or logo slot -->
-    <div class="p-card__art">
+    <div class="art">
       <slot name="art" />
     </div>
 
     <!-- Text body -->
-    <div class="p-card__body">
-      <h3 class="p-card__title">{{ title }}</h3>
-      <p v-if="description" class="p-card__desc">{{ description }}</p>
+    <div class="body">
+      <h3 class="title">{{ title }}</h3>
+      <p v-if="description" class="desc">{{ description }}</p>
 
-      <dl v-if="specs.length" class="p-card__specs">
+      <dl v-if="specs.length" class="specs">
         <div v-for="s in specs" :key="s.label">
           <dt>{{ s.label }}</dt>
           <dd>{{ s.value }}</dd>
@@ -60,9 +60,9 @@ const classes = computed(() => [
     </div>
 
     <!-- Footer: price and action. The price is formatted by the project's price atom. -->
-    <div class="p-card__footer">
-      <div v-if="price !== null" class="p-card__price">
-        <span class="p-card__price-val">{{ price }} €</span>
+    <div class="footer">
+      <div v-if="price !== null" class="price">
+        <span class="val">{{ price }} €</span>
       </div>
       <slot name="action" />
     </div>
@@ -96,7 +96,7 @@ const classes = computed(() => [
   --card-border: var(--color-sun, #ffd84d);
   box-shadow: var(--shadow-lift);
 }
-.p-card.-top .p-card__title {
+.p-card.-top .title {
   font-weight: 700;
 }
 
@@ -114,7 +114,7 @@ const classes = computed(() => [
   .p-card {
     padding: var(--space-2, 8px);
   }
-  .p-card__title {
+  .p-card .title {
     font-size: 0.95rem;
   }
 }

@@ -26,7 +26,7 @@ export default defineNuxtConfig({
 
 What this does during `nuxt generate`:
 - the styles of the Vue components a page renders are inlined in `<style>` in the page `<head>`;
-- global CSS (`main.css`: Tailwind, `theme.css`, `base.css`) stays one linked stylesheet, cached across pages.
+- global CSS (`main.css`: `theme.css`, `base.css`, and Tailwind when the project uses it) stays one linked stylesheet, cached across pages.
 
 **Inlining global CSS as well** (`inlineStyles: true`) can remove the last render-blocking request, but it changes where the rules sit in the cascade, and utility classes can win or lose against component styles differently. It is opt-in:
 1. Switch it on in a branch.

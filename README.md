@@ -17,7 +17,7 @@ DS7 is a set of rules, templates and reference documents for fast, multilingual 
 
 - Node.js 18 or newer.
 - A project folder where you run the command. DS7 writes `ds7/` and the agent entrypoints there.
-- A web project that follows the stack in `ds7/SPEC.md` (Nuxt 4, Vue 3, Tailwind CSS v4). The rules are written for that stack.
+- A web project that follows the stack in `ds7/SPEC.md` (Nuxt 4, Vue 3, plain CSS with custom properties; Tailwind CSS v4 is optional). The rules are written for that stack.
 
 ## Related
 

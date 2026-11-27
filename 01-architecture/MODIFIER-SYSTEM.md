@@ -10,9 +10,9 @@ Use a base class plus separate modifier classes. Each modifier starts with a das
 
 ```html
 <article class="p-card -top -new -compact">
-  <div class="p-card__art">…</div>
-  <h3 class="p-card__title">Panel 450 W</h3>
-  <div class="p-card__price">…</div>
+  <div class="art">…</div>
+  <h3 class="title">Panel 450 W</h3>
+  <div class="price">…</div>
 </article>
 ```
 
@@ -44,7 +44,7 @@ Avoid long compound names such as `catalog-product-card--featured-large-dark`.
   --card-border: var(--color-sun);
   box-shadow: var(--shadow-lift);
 }
-.p-card.-top .p-card__title {
+.p-card.-top .title {
   font-weight: 700;
 }
 

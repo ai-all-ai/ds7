@@ -23,17 +23,17 @@ function goHome() {
 
 <template>
   <div class="error-page">
-    <p class="error-page__code">{{ error.statusCode }}</p>
-    <h1 class="error-page__title">{{ title }}</h1>
-    <p class="error-page__text">
+    <p class="code">{{ error.statusCode }}</p>
+    <h1 class="title">{{ title }}</h1>
+    <p class="text">
       The link may be old or mistyped. You can start again from one of the main sections.
     </p>
-    <nav class="error-page__links" aria-label="Main sections">
-      <NuxtLink v-for="s in sections" :key="s.to" :to="s.to" class="error-page__link">
+    <nav class="links" aria-label="Main sections">
+      <NuxtLink v-for="s in sections" :key="s.to" :to="s.to" class="link">
         {{ s.label }}
       </NuxtLink>
     </nav>
-    <button type="button" class="error-page__back" @click="goHome">Back to the home page</button>
+    <button type="button" class="back" @click="goHome">Back to the home page</button>
   </div>
 </template>
 
@@ -50,27 +50,27 @@ function goHome() {
   color: var(--color-text);
   background: var(--color-bg);
 }
-.error-page__code {
+.error-page .code {
   font-size: clamp(3rem, 10vw, 6rem);
   font-weight: 700;
   line-height: 1;
   margin: 0;
   color: var(--color-accent);
 }
-.error-page__title {
+.error-page .title {
   font-size: clamp(1.5rem, 4vw, 2.25rem);
   margin: 0;
 }
-.error-page__text {
+.error-page .text {
   margin: 0;
 }
-.error-page__links {
+.error-page .links {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
 }
-.error-page__link,
-.error-page__back {
+.error-page .link,
+.error-page .back {
   padding: 0.6rem 1rem;
   border: 1px solid currentColor;
   border-radius: 0.375rem;

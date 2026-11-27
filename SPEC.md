@@ -10,7 +10,7 @@ Version 2.7.0. This document is the technical baseline. Rules for agents are in 
 ## 1. Stack
 
 - **Framework:** Nuxt 4, Vue 3.5+, Composition API with `<script setup lang="ts">`.
-- **Styling:** Tailwind CSS v4 and CSS custom properties defined in `theme.css`.
+- **Styling:** plain CSS with custom properties defined in `theme.css`, native CSS nesting and cascade layers. Tailwind CSS v4, UnoCSS and Lightning CSS are optional. See `02-design-system/CSS-SOURCES.md`.
 - **Rendering:** static generation (`nuxt generate`), prerendered routes, `sitemap.xml`, `robots.txt`, pre-compressed output (`.br`, `.gz`).
 - **Delivery:** nginx (`templates/nginx.conf`) or Caddy (`templates/Caddyfile`), or a CDN; cache and security headers as in `03-performance-web-vitals/DELIVERY-AND-CACHING.md`.
 - **i18n:** `@nuxtjs/i18n`, prefix-except-default strategy, one locale hub in `i18n/locales/`.
@@ -60,7 +60,7 @@ project-root/
 | Role | Format | Example |
 |---|---|---|
 | Base component | short kebab-case | `.p-card`, `.btn`, `.field` |
-| Element | double underscore | `.p-card__title` |
+| Inner part | short name under the root, scoped in CSS | `.p-card .title` |
 | Modifier | separate class with a leading dash | `.-top`, `.-compact`, `.-lg` |
 | State | dash modifier, like any variant | `.menu.-open`, `.tab.-active` |
 | Page context | class on `<body>` | `body.page-home` |

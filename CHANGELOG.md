@@ -4,6 +4,16 @@ All notable changes to DS7 are recorded here. Format: [Keep a Changelog](https:/
 
 ## [Unreleased]
 
+### Changed
+- Tailwind CSS is optional. The reference Nuxt config no longer imports or loads it. Existing projects that use Tailwind keep working.
+- Naming: the recommended profile uses short root names, dash modifiers (`.-sm`) and inner parts scoped under the root. BEM is no longer recommended; its naming is removed from the guidance.
+- Templates (`component.vue`, `error.vue`) and docs (`SPEC.md`, `ALL.md`, `COMPONENT-ANATOMY.md`, `MODIFIER-SYSTEM.md`) use the short inner names (`.p-card .title`) instead of `__` elements.
+- `02-design-system/CSS-CONVENTIONS.md`: the full CSS rules (names, nesting, modifiers and inheritance, custom properties, selectors, global styles, layers, context, container queries, checks), with their sources.
+- Docs: Tailwind is named as optional wherever the stack is described (`README.md`, `SPEC.md`, `ALL.md`, `CRITICAL-CSS.md`).
+
+### Fixed
+- `01-architecture/MODIFIER-SYSTEM.md`: the heading had a stray command pasted into it.
+
 ## [2.7.0] — 2026-11-27
 
 ### Added

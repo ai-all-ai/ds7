@@ -2,6 +2,22 @@
 
 Tokens are the foundations: the named values every component uses. They live as CSS custom properties in `app/assets/css/theme.css`. Components read tokens only; they never contain raw values.
 
+## Cascade and package defaults
+
+The project owns its theme. Import `app/assets/css/theme.css` from
+`app/assets/css/main.css` and define the project's semantic tokens and HTML
+styles there. The UI kit supplies fallback values for tokens the project leaves
+undefined and fallback styles for plain HTML elements. Its compiled foundation
+uses the `aiall-ui-foundation` cascade layer. Keep the project theme unlayered
+or in a layer ordered after the foundation. When using explicit layer ordering,
+declare `aiall-ui-foundation` before project layers.
+
+Use DS7's installed Nuxt UI module to load the foundation once. Keep old
+`theme-base.css` or `base.css` files only when the project still owns overrides
+in them, then move those overrides into the project theme when appropriate.
+Import package defaults only once. Choose modular component styles for typical
+routes or the combined sheet when one shared stylesheet matches the app's needs.
+
 Format for tools that need it: the [W3C Design Tokens Format Module (2025.10)](https://www.w3.org/community/reports/design-tokens/CG-FINAL-format-20251028/), with `$value` and `$type`.
 
 ---

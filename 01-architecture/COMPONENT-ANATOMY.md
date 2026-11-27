@@ -42,14 +42,14 @@ const rootClasses = computed(() => [
 
 <template>
   <article :class="rootClasses" data-ref="CARD-01">
-    <div class="p-card__art">
+    <div class="art">
       <slot name="art" />
     </div>
 
-    <div class="p-card__body">
-      <h3 class="p-card__title">{{ title }}</h3>
-      <p v-if="description" class="p-card__desc">{{ description }}</p>
-      <dl v-if="specs.length" class="p-card__specs">
+    <div class="body">
+      <h3 class="title">{{ title }}</h3>
+      <p v-if="description" class="desc">{{ description }}</p>
+      <dl v-if="specs.length" class="specs">
         <div v-for="s in specs" :key="s.label">
           <dt>{{ s.label }}</dt>
           <dd>{{ s.value }}</dd>
@@ -57,7 +57,7 @@ const rootClasses = computed(() => [
       </dl>
     </div>
 
-    <div class="p-card__footer">
+    <div class="footer">
       <UiPrice v-if="price !== null" :amount="price" />
       <slot name="action" />
     </div>
@@ -82,7 +82,7 @@ const rootClasses = computed(() => [
   .p-card {
     padding: var(--space-2);
   }
-  .p-card__title {
+  .p-card .title {
     font-size: 0.9rem;
   }
 }

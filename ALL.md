@@ -8,7 +8,7 @@
 > Project-specific rules live in the root `ALL.md`, below the AI-ALL packs block (`<!-- aiall:begin packs -->` to `<!-- aiall:end packs -->`). AI-ALL keeps that text on sync. Longer project documents for agents live in `ds7/local/`, which `ds7 update` never writes; the root `ALL.md` links to them. Where project rules and this file disagree, the project rules win for that project and the disagreement is recorded in `docs/DECISIONS.md`.
 > This file is the `ds7` pack of AI-ALL. The root `ALL.md` lists it in the packs block. Every entrypoint (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/*`, `.windsurf/rules/*`, `.github/copilot-instructions.md`) points to the root `ALL.md`. Sync them with `npx @ai.all/aiall sync`.
 
-**Version:** 2.7.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, Tailwind CSS v4, `@nuxtjs/i18n`, static generation.
+**Version:** 2.7.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, CSS custom properties (Tailwind CSS v4 optional), `@nuxtjs/i18n`, static generation.
 
 ---
 
@@ -27,6 +27,8 @@
 New projects and new sections are built **top-down from the brand**, never by styling pages one by one (see `01-architecture/PROJECT-ONBOARDING.md`):
 
 1. **Brand Specification & Foundations** (`docs/BRAND.md` intake and `theme.css`): colour, type scale, spacing, radius, shadow, breakpoints, z-index. Written as named tokens.
+   The project theme takes precedence. The UI kit's foundation layer supplies missing token values and plain HTML defaults. Import the project theme through `main.css` and load the package foundation once. See `02-design-system/TOKENS-SPEC.md`.
+
 2. **Brandbook** (`/ui` sandbox from `@ai.all/ui`, which `npx @ai.all/ds7` installs as `app/pages/ui.vue`): every foundation token shown, then the base atoms (`BTN-01`, `BTN-02`, `CTL-01`, `COUNTER-01`, `PRICE-01`) with their modifiers, states and contrast on light and dark backgrounds.
 3. **Atoms and molecules** built from the brandbook only. A component that is not in the sandbox is not finished.
 4. **Organisms and sections** composed from molecules.
@@ -76,7 +78,7 @@ Full model: `01-architecture/ATOMIC-DESIGN.md`.
 Full rules: `02-design-system/NAMING-CONVENTIONS.md` and `01-architecture/MODIFIER-SYSTEM.md`.
 
 - **Base name:** short kebab-case: `.p-card`, `.btn`, `.field`.
-- **Element:** double underscore: `.p-card__title`.
+- **Inner part:** a short name under the root, scoped in CSS: `.p-card .title`. No `__` and no BEM.
 - **Modifier:** a **separate** class starting with a dash: `.-top`, `.-compact`, `.-lg`. Combine freely: `class="p-card -top -compact"`.
 - **Forbidden:** appending a word to a base name (`.btn-lg`, `.card-big`, `.hero-active`). Use `.btn.-lg`.
 - **State:** a dash modifier like any other variant: `.menu.-open`, `.tab.-active`, `.btn.-loading`. Projects that already use `is-` keep them; `guard.stateClasses` in `ds7.config.json` decides whether the guard warns, fails or stays silent.
