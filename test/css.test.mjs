@@ -71,6 +71,43 @@ test('css takes its folder and switches from ds7.config.json', (t) => {
   assert.match(css(dir).out, /css: off/);
 });
 
+test('css checks native nesting only in the selected CSS profile', (t) => {
+  const dir = styled(t, { ui: '.card { &-large { color: red } }\n' });
+  edit(dir, 'ds7.config.json', (s) =>
+    JSON.stringify({ ...JSON.parse(s), css: { profile: 'existing', dead: false } }),
+  );
+  assert.equal(css(dir).status, 0, 'an existing Sass profile keeps its syntax');
+  edit(dir, 'ds7.config.json', (s) =>
+    JSON.stringify({ ...JSON.parse(s), css: { profile: 'ds-native', dead: false } }),
+  );
+  const r = css(dir);
+  assert.equal(r.status, 1);
+  assert.match(r.out, /sass-concatenation[\s\S]*&-large/);
+});
+
+test('css rejects media variables and advises on non-base viewport widths without banning container widths', (t) => {
+  const dir = styled(t, {
+    ui: '.card { color: red; @container (width >= 520px) { > .title { color: blue } } }\n@media (width >= 768px) { .card { color: blue } }\n',
+  });
+  put(
+    dir,
+    'app/components/ui/UiCard.vue',
+    '<template><div class="card"><span class="title">x</span></div></template>\n',
+  );
+  edit(dir, 'ds7.config.json', (s) =>
+    JSON.stringify({ ...JSON.parse(s), css: { profile: 'ds-native' } }),
+  );
+  assert.equal(css(dir).status, 0);
+  put(dir, 'app/assets/css/ui.css', '@media (width >= 900px) { .card { color: red } }\n');
+  const advice = css(dir);
+  assert.equal(advice.status, 0);
+  assert.match(advice.out, /advice: 1 non-base viewport threshold/);
+  put(dir, 'app/assets/css/ui.css', '@media (width >= var(--bp-md)) { .card { color: red } }\n');
+  const invalid = css(dir);
+  assert.equal(invalid.status, 1);
+  assert.match(invalid.out, /media-variable/);
+});
+
 test('css diff passes a refactor that keeps every rule and reports one that loses a rule', (t) => {
   const dir = styled(t, { ui: '.card { color: red; margin: 0 }\n' });
   const git = (...a) => spawnSync('git', a, { cwd: dir, encoding: 'utf8' });

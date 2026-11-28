@@ -118,10 +118,17 @@ function packManifest() {
       },
       {
         id: 'ds7.spec',
-        title: 'DS7 stack and quality gates',
+        title: 'Nuxt reference stack and quality gates',
         summary:
-          'Read for the stack, directory layout, naming, performance targets and quality gates.',
+          'Read for the current Nuxt/Vue reference stack, directory layout, performance targets and quality gates.',
         doc: doc('SPEC.md'),
+      },
+      {
+        id: 'ds7.profiles',
+        title: 'Technology profiles and component contracts',
+        summary:
+          'Read before choosing or changing CSS, rendering or build technology, or making a framework-independent component.',
+        doc: doc('01-architecture/TECHNOLOGY-PROFILES.md'),
       },
       {
         id: 'ds7.onboarding',

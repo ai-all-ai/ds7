@@ -143,16 +143,47 @@ function audit() {
   // !important: the places it is written, in the stylesheets and in component <style> blocks
   const important = [];
   const classes = new Map();
+  const nativeIssues = [];
+  const viewportAdvice = [];
+  const baseBreakpoints = new Set([480, 768, 1024, 1280, 1440]);
   let rules = 0;
   for (const name of files) {
     const file = path.join(cfg.dir, name);
     if (!fs.existsSync(file)) continue;
-    postcss.parse(read(file), { from: file }).walkRules((rule) => {
+    const tree = postcss.parse(read(file), { from: file });
+    tree.walkAtRules('media', (atRule) => {
+      const at = `${path.posix.join(cfg.dir, name)}:${atRule.source.start.line}`;
+      if (/\bvar\s*\(/i.test(atRule.params))
+        nativeIssues.push({
+          rule: 'media-variable',
+          where: at,
+          detail: 'var() cannot be used in a media query condition',
+        });
+      if (cfg.profile !== 'ds-native') return;
+      const conditions = [
+        ...atRule.params.matchAll(
+          /\b(?:min-|max-)?width\s*(?::|<=|>=|<|>|=)\s*(\d+(?:\.\d+)?)px/gi,
+        ),
+        ...atRule.params.matchAll(/(\d+(?:\.\d+)?)px\s*(?:<=|>=|<|>)\s*width\b/gi),
+      ];
+      for (const [, value] of conditions)
+        if (!baseBreakpoints.has(Number(value)))
+          viewportAdvice.push(
+            `${at}: ${value}px is outside the base viewport scale; document the content-driven reason if intentional`,
+          );
+    });
+    tree.walkRules((rule) => {
       if (rule.parent?.type === 'atrule' && /keyframes$/.test(rule.parent.name)) return;
       rules++;
       const ctx =
         rule.parent?.type === 'atrule' ? `@${rule.parent.name} ${rule.parent.params}` : '';
       const at = `${path.posix.join(cfg.dir, name)}:${rule.source.start.line}`;
+      if (cfg.profile === 'ds-native' && /&(?:__|--|-[a-zA-Z])/.test(rule.selector))
+        nativeIssues.push({
+          rule: 'sass-concatenation',
+          where: at,
+          detail: `${norm(rule.selector)} is Sass-style string joining, not native CSS nesting`,
+        });
       for (const raw of rule.selectors) {
         const sel = raw.trim();
         if (sel === ':root') continue;
@@ -180,6 +211,7 @@ function audit() {
   }
 
   const findings = [
+    ...nativeIssues,
     ...orphans.map((f) => ({
       rule: 'orphan-file',
       where: path.posix.join(cfg.dir, f),
@@ -197,6 +229,10 @@ function audit() {
   ];
   const notes = [];
   const advice = [];
+  if (viewportAdvice.length) {
+    notes.push(`${viewportAdvice.length} non-base viewport threshold(s)`);
+    advice.push([`${viewportAdvice.length} non-base viewport threshold(s)`, viewportAdvice]);
+  }
   if (cfg.repeats !== 'off') {
     const sels = [...selectors].filter(([, at]) => at.length > 1);
     const blks = [...blocks].filter(([, at]) => at.length > 1);

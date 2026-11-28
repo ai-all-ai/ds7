@@ -81,3 +81,13 @@ test('every document a pack directive routes to is shipped in the package', () =
     );
   }
 });
+
+test('the five base viewport breakpoints match the theme and token specification', () => {
+  const expected = { sm: 480, md: 768, lg: 1024, xl: 1280, '2xl': 1440 };
+  const values = (text) =>
+    Object.fromEntries(
+      [...text.matchAll(/--bp-(sm|md|lg|xl|2xl):\s*(\d+)px/g)].map((m) => [m[1], Number(m[2])]),
+    );
+  assert.deepEqual(values(read('templates/theme.css')), expected);
+  assert.deepEqual(values(read('02-design-system/TOKENS-SPEC.md')), expected);
+});

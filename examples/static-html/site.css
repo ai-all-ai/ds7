@@ -1,0 +1,66 @@
+@layer tokens, base, layout, components;
+
+@layer tokens {
+  :root {
+    color-scheme: light;
+    --surface: #fff;
+    --text: #17212b;
+    --line: #6b7280;
+    --focus: #135ba1;
+    --space: 1rem;
+    --radius: .5rem;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #17212b;
+    --text: #fff;
+    --line: #cbd5e1;
+    --focus: #9bd0ff;
+  }
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 1rem/1.5 system-ui, sans-serif; color: var(--text); background: var(--surface); }
+  button, input { font: inherit; }
+  :focus-visible { outline: .2rem solid var(--focus); outline-offset: .15rem; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+}
+
+@layer layout {
+  .site-header, main, .site-footer { width: min(100% - 2rem, 80rem); margin-inline: auto; }
+  main { display: grid; gap: clamp(2rem, 5vw, 4rem); padding-block: 2rem; }
+  .skip { position: absolute; translate: 0 -150%; }
+  .skip:focus { translate: 0; }
+}
+
+@layer components {
+  .intro {
+    display: grid;
+    gap: var(--space);
+    > header > p { max-width: 65ch; }
+  }
+  .model-list {
+    display: grid;
+    gap: var(--space);
+    &.-compact { --card-p: .75rem; }
+    @media (width >= 768px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  .model-card {
+    padding: var(--card-p, 1.5rem);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    > .title { margin-block-start: 0; }
+  }
+  .tools { display: grid; gap: var(--space); }
+  .faq-item { border-block: 1px solid var(--line); padding-block: var(--space); }
+  .calculator {
+    display: grid;
+    gap: var(--space);
+    max-width: 30rem;
+    > label { display: grid; }
+    > output { min-height: 1.5em; }
+  }
+}

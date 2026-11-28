@@ -1,6 +1,6 @@
 # 02 · CSS conventions (DS7)
 
-The one home of the CSS rules for DS7 projects and `@ai.all/ui`: names, nesting, modifiers, custom properties, themes, states, layers and reuse. Other documents link here and do not repeat these rules. Where each idea comes from, and which tools are optional: `CSS-SOURCES.md`.
+The one home of the DS Native Contextual CSS rules: names, nesting, modifiers, custom properties, themes, states, layers and reuse. The method is recommended for new work, not a required package or a global ban on another chosen CSS profile. Other documents link here and do not repeat these rules. Where each idea comes from, and which tools are optional: `CSS-SOURCES.md`.
 
 The goal is the shortest CSS that stays readable, reusable and safe to change: a change to one component never breaks another.
 
@@ -31,7 +31,7 @@ The words follow [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119): MUST is a r
 4. Parts without a class when the tag says what they are (`.card h3`).
 
 **MUST NOT**
-1. BEM names (`block__element`, `block--modifier`) in new DS7 and ui code. Existing projects are not forced to migrate.
+1. BEM names (`block__element`, `block--modifier`) in new DS Native Contextual code. A project on a selected BEM profile keeps its syntax; existing projects are not forced to migrate.
 2. `!important` in component CSS. The only accepted uses are listed in section 8.
 3. A copy of a component for one page. Use a modifier, a custom property or a parent context.
 4. A second mechanism for the same state (`.is-open` next to `aria-expanded="true"`).
@@ -124,7 +124,7 @@ Native CSS Nesting is the recommended syntax: parts, modifiers, states and conta
 }
 ```
 
-- **No depth limit, but do not nest deeply.** There is no fixed number of levels. When a selector grows deep, first make the HTML flatter, or give the element its own part class and write it closer to the root.
+- **No depth limit.** Judge source nesting, DOM depth, selector complexity and specificity separately. A meaningful chain such as `.gallery { > figure { > picture { > img {} } } }` is valid; when intermediate levels have no declarations, `.gallery { > figure > picture > img {} }` can be clearer. Add a local part class when the DOM contract may change. Do not fail a correct selector solely for its number of levels.
 - **Flatten the HTML first.** Fewer wrappers mean shorter selectors, smaller pages and a simpler accessibility tree. Remove a `div` that exists only for spacing or alignment: use `gap`, grid or flex on the parent, or a helper (section 9).
 
 ```html
@@ -144,7 +144,7 @@ Native nesting is parsed by the browser, not compiled like Sass. These rules fol
 - **`&` joins, a missing `&` adds a space.** `&.-hor` is `.model-card.-hor`; `.-hor` without `&` is `.model-card .-hor`, a descendant. Modifiers and states always start with `&` (`&.-hor`, `&:hover`, `&[aria-current]`).
 - **No string joining.** `&__title` or `&-title` do not build a class name as in Sass: the browser reads them as an invalid selector and drops that rule. Name the part and nest it (`.title`). A tag goes first in a compound: `button&`, never `&button`.
 - **`&` never stands for a pseudo-element.** Under `.card::before` a nested `&:hover` matches nothing. Nest the pseudo-element under the root instead: `.card { &::before {} &:hover::before {} }`.
-- **At-rules nest too.** `@media`, `@container`, `@supports` and `@layer` go inside the rule they change; a declaration written directly inside them applies to the root. Put a media query inside its component rather than in a separate block at the end of the file.
+- **Conditional at-rules can nest.** `@media`, `@container` and `@supports` can go inside a style rule and their declarations apply to its selector. `@layer`, `@scope` and `@starting-style` have their own grammar and cascade effects; check the at-rule's specification and browser targets before nesting it. An arbitrary at-rule is not automatically valid in every position.
 
 ```css
 .model-list {
@@ -156,14 +156,14 @@ Native nesting is parsed by the browser, not compiled like Sass. These rules fol
   }
 }
 ```
-- **Declarations first, nested rules after.** Declarations written after a nested rule keep their place in current browsers (the specification wraps them in a nested declarations rule), but older engines skipped or moved them, and the specification itself recommends properties first.
+- **Preserve cascade order.** Declarations written after nested rules can be represented by `CSSNestedDeclarations` and keep their position in current engines. Older engines and transformers may differ. Put base declarations first for readability when their order is immaterial; do not reorder a mixed block automatically without comparing computed styles.
 - **An invalid nested selector drops only itself.** The parent and the other nested rules still apply, so a typo fails silently: check the rule in the browser.
 
 ### Specificity
 
-- Every nested level adds to specificity: `.model-card .body .title` is (0,3,0). Shallow selectors are easier to override from a modifier or a parent.
-- A nested rule under a selector list takes the highest specificity of the list, because the browser wraps the parent in `:is()`: under `.card, #promo` every nested rule counts like an id. Do not nest under lists that mix weights.
-- Use `:where()` for defaults that should be easy to override (specificity 0) and `:is()` when the weight should stay.
+- Count the selectors that actually contribute specificity, not the indentation: `.model-card .body .title` is (0,3,0), while `.model-card :where(.body .title)` is (0,1,0). `:where()` contributes zero; `:is()` takes its most specific argument. An id in a parent list can raise the weight of every nested branch.
+- A nested rule under a selector list takes the highest specificity of the list, like `:is()`: `.card, #promo { > h2 {} }` has (1,0,1) for the nested rule even on `.card`. Do not flatten or split it without checking the cascade.
+- Use `:where()` for defaults that should be easy to override (its own specificity is 0) and `:is()` when the argument's weight should stay. `&.-lg` targets the same root; `.-lg` without `&` targets a descendant. `& + &` and `& ~ &` target adjacent/following sibling roots, but parent `gap` is usually simpler for layout spacing.
 
 ### Browser support
 
@@ -405,7 +405,7 @@ Sidebar, Switcher, Frame, Reel and Imposter follow the same source when a projec
   }
 }
 ```
-- Pages use the five base breakpoints of `TOKENS-SPEC.md` section 9 (480, 768, 1024, 1280 and 1440 px) and no others. A custom property cannot be read inside `@media`, so the value is written in the query, in range syntax with one pair of operators: `@media (width <= 1024px)` and `@media (width > 1024px)`. Scripts take the same values from one module of the project instead of writing their own `matchMedia` widths, and a check (for example the project's CSS audit) fails on any other width. Check 390, 820 and 1440 px.
+- For viewport queries in this profile, use the base scale and syntax in `TOKENS-SPEC.md` section 9. Container thresholds can differ. Run responsive checks around each threshold actually used, including fractional widths for exclusive bands; also check zoom and enlarged text.
 - Prefer intrinsic layout (`auto-fit`, `minmax()`, `clamp()`, `flex-wrap`) over a breakpoint per component.
 - Motion reads duration tokens, which `prefers-reduced-motion: reduce` sets to `0s` in the theme (`TOKENS-SPEC.md`), so no component needs its own media query.
 

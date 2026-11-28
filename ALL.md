@@ -8,7 +8,7 @@
 > Project-specific rules live in the root `ALL.md`, below the AI-ALL packs block (`<!-- aiall:begin packs -->` to `<!-- aiall:end packs -->`). AI-ALL keeps that text on sync. Longer project documents for agents live in `ds7/local/`, which `ds7 update` never writes; the root `ALL.md` links to them. Where project rules and this file disagree, the project rules win for that project and the disagreement is recorded in `docs/DECISIONS.md`.
 > This file is the `ds7` pack of AI-ALL. The root `ALL.md` lists it in the packs block. Every entrypoint (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/*`, `.windsurf/rules/*`, `.github/copilot-instructions.md`) points to the root `ALL.md`. Sync them with `npx @ai.all/aiall sync`.
 
-**Version:** 2.9.1 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, plain CSS with custom properties and native nesting (Tailwind, UnoCSS, SCSS and other tools optional), `@nuxtjs/i18n`, static generation.
+**Version:** 2.10.0 · **Scope:** framework-independent frontend standards. The bundled installer and reference project currently use Nuxt 4 and Vue 3. Choose the project's CSS, rendering and build profiles in `01-architecture/TECHNOLOGY-PROFILES.md` before applying stack-specific rules.
 
 ---
 
@@ -22,44 +22,54 @@
 
 ---
 
-## 0.1 Build order: brand first, then components
+## 0.1 Route the task to its rules
+
+1. Read the root `ALL.md` for project instructions and `docs/DECISIONS.md` for its chosen profiles and exceptions. Inspect the actual package, build and source files before assuming a tool or component exists. If no profile is recorded, preserve the project's existing stack and record the choice before an architecture change.
+2. For CSS, read `02-design-system/CSS-CONVENTIONS.md`; for values and viewport thresholds, read `02-design-system/TOKENS-SPEC.md`. For rendering, framework adapters and build choices, read `01-architecture/TECHNOLOGY-PROFILES.md`. The relevant document must be in the agent's working context before the change; an unread link is not enough.
+3. Run the checks that apply to the chosen profile. `ds7 check`, `css`, `audit`, `console` and `lab` cover different source/build/browser concerns; the Nuxt-specific layout and scaffolding gates do not prove a static HTML or Astro build correct. Record exceptions in `docs/DECISIONS.md` and measured results in `docs/METRICS.md`.
+
+DS7 is the source of rules. This file is a compact task router, not a second full CSS specification. Requirement strength (MUST, SHOULD, MAY, MUST NOT) and implementation status (AS-IS, TARGET, PLANNED, IMPLEMENTED, VERIFIED, EXPERIMENTAL, LEGACY, DEPRECATED) are independent; see the profile document.
+
+## 0.2 Build order: brand first, then components
 
 New projects and new sections are built **top-down from the brand**, never by styling pages one by one (see `01-architecture/PROJECT-ONBOARDING.md`):
 
 1. **Brand Specification & Foundations** (`docs/BRAND.md` intake and `theme.css`): colour, type scale, spacing, radius, shadow, breakpoints, z-index. Written as named tokens.
    The project theme takes precedence. The UI kit's foundation layer supplies missing token values and plain HTML defaults. Import the project theme through `main.css` and load the package foundation once. See `02-design-system/TOKENS-SPEC.md`.
 
-2. **Brandbook** (`/ui` sandbox from `@ai.all/ui`, which `npx @ai.all/ds7` installs as `app/pages/ui.vue`): every foundation token shown, then the base atoms (`BTN-01`, `BTN-02`, `CTL-01`, `COUNTER-01`, `PRICE-01`) with their modifiers, states and contrast on light and dark backgrounds.
-3. **Atoms and molecules** built from the brandbook only. A component that is not in the sandbox is not finished.
+2. **Component contracts and review:** define the semantic structure, tokens, states and accessibility of each reusable pattern. The `/ui` Brandbook is available in the current Nuxt/UI integration; use it when that integration is selected.
+3. **Small reusable components** built from the foundations. Review them in the project's available preview or fixtures.
 4. **Organisms and sections** composed from molecules.
 5. **Pages** assembled from sections, with data from `app/data/`.
 
 Rules that follow from this order:
 
 - A new colour, size or spacing value is added to the foundations first. Components never introduce a raw value.
-- A new pattern is added to the brandbook first, then used. If a page needs something that does not exist, add it to the brandbook, then use it.
-- Changing a token changes the brandbook, which is the visual regression reference.
-- The brandbook is the shared vocabulary: people and agents refer to `CARD-01 -top` instead of describing it again.
+- In a project using the UI Brandbook, add a reusable pattern there and use it as a visual reference. Other projects can use a fixture or their existing component preview.
+- A token change is checked in every theme context and in the relevant component preview.
 
 This approach is established practice, not an invention of DS7. Related references: the [W3C Design Tokens Format Module (2025.10)](https://www.w3.org/community/reports/design-tokens/CG-FINAL-format-20251028/) defines the token file format; [Brad Frost's Atomic Design](https://atomicdesign.bradfrost.com/chapter-2/) defines the component levels; design systems such as Salesforce Lightning and Material Design publish foundations and component guidance before components are used in product pages. Token pipelines such as Style Dictionary turn one token file into CSS, iOS and Android values.
 
 ---
 
-## 0.2 Packages and their roles
+## 0.3 Packages and their roles
 
 | Package | Role |
 |---|---|
 | **DS7** (`@ai.all/ds7`) | The canonical standard: rules, recommendations, agent instructions, checks and production optimisation. |
-| **DS** (the CSS layer) | The CSS implementation of the standard: tokens, themes, base styles, helpers and utilities. Today it ships as the foundation of `@ai.all/ui` (`aiall-ui-foundation`) and the project's `theme.css`. |
+| **DS Native Contextual** | The recommended CSS method, usable directly in project styles. It is not a package. |
+| **DS Core** | TARGET: a future independent CSS package. It has no required dependency or available exports in DS7 today. |
 | **AI-ALL** (`@ai.all/aiall`) | The same behaviour for every AI agent, and delivery of the current DS7 instructions as a pack. |
-| **UI** (`@ai.all/ui`) | Reusable components and extra development tools. |
-| **DevTools, Brandbook, Asset Gallery** | Optional development helpers from UI. They are left out of the public production build; UI components that pages use stay in it. |
+| **UI** (`@ai.all/ui`) | AS-IS: Vue components and a CSS foundation, plus development tools. Use only exports verified in the installed package. |
+| **DevTools, Brandbook, Asset Gallery** | Optional development helpers from UI. The Nuxt module excludes its managed routes by default in production; verify emitted bundles in each consumer. |
 
-Each rule has one home: CSS rules live in DS7, their implementation in DS, components in UI. A conflict between packages is resolved in favour of DS7 and reported.
+CSS rules live in DS7. AIALL delivers them; UI implements its own present components and tools. The future DS Core may implement CSS contracts after it exists. A conflict is resolved in favour of the project's explicit exception, then the applicable DS7 profile, and reported.
 
 ---
 
 ## 1. Languages
+
+The file paths and Nuxt conventions in sections 2 and 5–9 describe the current Nuxt reference profile. Apply their outcomes (accessible assets, translations where needed, SEO and safe browser behavior) in other profiles using that profile's own paths and tools.
 
 - **Code, comments, identifiers, commit messages, docs in `ds7/` and `docs/`:** English. One language per file: never mix languages in code or comments.
 - **Conversation with the project owner:** the language the owner writes in. Detect it from the first message and keep it in every reply, summary, question and message to a sub-agent, unless the owner changes it. Chat language never leaks into files.
@@ -71,7 +81,7 @@ Each rule has one home: CSS rules live in DS7, their implementation in DS, compo
 
 ## 2. Components (Atomic Design)
 
-Full model: `01-architecture/ATOMIC-DESIGN.md`.
+For the Nuxt/Vue reference profile, see `01-architecture/ATOMIC-DESIGN.md`. Other renderers follow the component contract and composition principles in `01-architecture/TECHNOLOGY-PROFILES.md`; they need not create an atom/molecule/organism folder for every element.
 
 | Level | Location | Rule |
 |---|---|---|
@@ -83,7 +93,7 @@ Full model: `01-architecture/ATOMIC-DESIGN.md`.
 
 - **Never copy a component for a page.** Vary it with modifiers or with the page class on `<body>`.
 - **Every block works anywhere** (page, sidebar, modal, nested). It must not depend on its parent.
-- **Every reusable pattern has a stable ID** (`CARD-01`, `BTN-01`, …) listed in `02-design-system/BRANDBOOK-SANDBOX.md`. A new pattern without an ID and a sandbox entry is unfinished.
+- **When using the UI Brandbook**, register its reusable patterns there. Other projects can document the public contract in their existing preview or component docs.
 
 ---
 
@@ -96,7 +106,7 @@ Full rules, with before and after examples: `02-design-system/CSS-CONVENTIONS.md
 - **MUST:** semantic HTML first; WCAG 2.2 AA (contrast, focus, keyboard, reduced motion); values from tokens, no raw colours in components; selectors start at the component's root; one mechanism per state (native, then ARIA, then `data-state`).
 - **SHOULD:** short root names (`.btn`, `.hero`, `.model-card`); dash modifiers that name only the difference (`.-hor`, `.-sm`, `.-dark`, `.-compact`); parts nested under the root, with a class only when the tag is not enough; native CSS nesting; component variables read with a fallback (`var(--card-p, var(--space-4))`) so a parent or a theme can set them; themes through `data-theme`; priority through order and `@layer`.
 - **MAY:** flat selectors where simpler; an optional tool with a reason in `docs/DECISIONS.md`; layout primitives after Every Layout (`stack`, `center`, `cluster`, `grid`, `cover`), small utilities (`row`, `between`, `absfill`, `ellipsis`) and grouped selectors (`:where(h1, h2, .price)`) once a need repeats.
-- **MUST NOT:** BEM in new code; a word appended to a root (`.btn-lg`; write `.btn.-lg`); `!important` in components; a copy of a component for a page (use a modifier, a variable or `body.page-<slug>`); a second class for a state that ARIA or a native attribute already holds; helpers or merged rules made in advance for styles that only look alike.
+- **MUST NOT in DS Native Contextual:** new BEM names or an appended variant (`.btn-lg`; write `.btn.-lg`). A project on a chosen BEM or Sass profile follows that profile. Do not duplicate a state already carried by a native or ARIA attribute, or invent helpers before a repeated need.
 - **No artificial limits:** no closed list of names, no forced splitting of components, no nesting depth limit. These three specifically must not be forced on you; other limits (page style lines, performance budgets) are configurable via `ds7.config.json` and can be turned off or adjusted. Do not nest deeply, and flatten the HTML first (fewer wrapper elements, `gap` and layout helpers instead of spacing `div`s).
 - **Yellow accent (`--color-sun`) is never text.** It is a fill, a badge background or a marker.
 - **Existing projects** keep their method; nothing forces a migration. `guard.stateClasses` in `ds7.config.json` decides how `is-*` classes are reported.
@@ -107,7 +117,7 @@ Full rules, with before and after examples: `02-design-system/CSS-CONVENTIONS.md
 ## 4. Responsive layout
 
 - **Components** size themselves with `container-type: inline-size` and `@container`, so they work in any slot.
-- **Pages** use the five base breakpoints of `TOKENS-SPEC.md` section 9 (480, 768, 1024, 1280, 1440 px), written as `@media (width <= N)` or `(width > N)`, the same values in scripts. Do not invent new ones.
+- **Viewport layout:** use the five base thresholds in `TOKENS-SPEC.md` section 9 (480, 768, 1024, 1280, 1440 px) where they fit. Prefer `width >= N` for mobile-first steps and half-open ranges for exclusive bands. Content-driven container thresholds may differ. Keep JavaScript thresholds aligned with the project source when JavaScript needs them.
 - **Grids** that cannot fit on a phone switch to two columns below 1024 px, or to one column below 480 px. Check at 390, 820 and 1440 px.
 - **No horizontal scroll** on any page at 390 px. Side gutter is 16 px on phones.
 

@@ -178,7 +178,7 @@ A component reads its own variables with a fallback to a foundation token: `padd
 
 ## 9. Breakpoints
 
-DS7 has five base breakpoints. Every project uses these and no others in `@media` and in scripts.
+The DS Native Contextual profile has five base **viewport** breakpoints. Use the thresholds a layout needs; do not add a media query at every threshold by habit. Existing or alternative profiles may retain their own scale. Container queries can use content-driven widths, which need not match this viewport scale.
 
 ```css
 :root {
@@ -192,13 +192,13 @@ DS7 has five base breakpoints. Every project uses these and no others in `@media
 
 | Name | Width | `@media` |
 | --- | --- | --- |
-| sm | 480 px | `(width <= 480px)` / `(width > 480px)` |
-| md | 768 px | `(width <= 768px)` / `(width > 768px)` |
-| lg | 1024 px | `(width <= 1024px)` / `(width > 1024px)` |
-| xl | 1280 px | `(width <= 1280px)` / `(width > 1280px)` |
-| 2xl | 1440 px | `(width <= 1440px)` / `(width > 1440px)` |
+| sm | 480 px | `(width >= 480px)` |
+| md | 768 px | `(width >= 768px)` |
+| lg | 1024 px | `(width >= 1024px)` |
+| xl | 1280 px | `(width >= 1280px)` |
+| 2xl | 1440 px | `(width >= 1440px)` |
 
-The values are written in the query, because `var()` does not work inside `@media`; the custom properties document them. Use range syntax with one pair of operators, `<=` and `>`, so a width belongs to exactly one side. Scripts read the same numbers from one project module (for example `app/utils/breakpoints.ts`) instead of writing their own `matchMedia` widths, and an `<img sizes>` writes `(max-width: 1024px)`. A project check fails on any other width. Components prefer container queries.
+The values are literal in `@media` because `var()` does not work in media conditions; CSS custom properties document the scale, they do not drive the queries. For mobile-first overrides use overlapping minimum conditions such as `(width >= 768px)`. For **exclusive bands** use half-open ranges such as `(480px <= width < 768px)` and `(width < 480px)` so fractional widths have no gap. `(width <= 767px)` followed by `(width >= 768px)` leaves 767.5px uncovered. Older `min-width`/`max-width` syntax is allowed when browser targets require it. A JavaScript module that genuinely needs viewport thresholds must share the project's values and avoid `window` at module import time. `sizes` may use its broadly supported media syntax. Do not reject content-driven container thresholds or intrinsic layouts merely because their numbers differ. Test viewport boundaries, zoom, text enlargement and container resizing; width is not a device category.
 
 
 ---

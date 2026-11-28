@@ -128,6 +128,7 @@ A local edit of a vendored file that no patch carries is always saved to `ds7/lo
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `css` | on | `false` turns the command off. |
+| `css.profile` | `"existing"` (`"ds-native"` in the new init template) | `"ds-native"` enables native nesting checks for imported CSS: Sass-style `&-name`/`&__part` fails; off-scale viewport thresholds are advice. Existing and alternative CSS profiles keep their syntax. `var()` in a media condition fails in every profile. This setting does not select a renderer or a build tool. |
 | `css.dir`, `css.entry` | `"app/assets/css"`, `"main.css"` | The stylesheet folder and the file that imports the others. |
 | `css.sources` | `app, components, pages, layouts, src, i18n, nuxt.config.ts` | Where a class counts as used. |
 | `css.orphans` | `true` | Report stylesheets the entry does not import. |

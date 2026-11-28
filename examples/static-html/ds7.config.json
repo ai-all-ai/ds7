@@ -1,0 +1,9 @@
+{
+  "a11y": { "css": "." },
+  "css": {
+    "profile": "ds-native",
+    "dir": ".",
+    "entry": "site.css",
+    "sources": ["index.html", "boot.mjs", "calculator-dom.mjs"]
+  }
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Accessibility gate (WCAG 2.2 A and AA, the parts a script can prove) over the generated site: `nuxt generate`, then `ds7 audit a11y`.
+// Accessibility gate (WCAG 2.2 A and AA, the parts a script can prove) over generated HTML and CSS from any renderer.
 // Static: it reads the HTML and the stylesheets, it does not render. What needs a rendered page (real contrast on photos, focus order,
 // target size, zoom) needs a browser: `ds7 lab --axe`. Each finding names the success criterion.
 //   ds7 audit a11y [--out .output/public]
@@ -267,11 +267,10 @@ for (const { route: r, root } of pages) {
       }
 }
 
-// 2.4.7 / 2.3.3 from the stylesheets
-const cssDir = path.join(OUT, '_nuxt');
-const css = (fs.existsSync(cssDir) ? fs.readdirSync(cssDir) : [])
+// 2.4.7 / 2.3.3 from generated stylesheets, whether emitted by Nuxt or a static builder.
+const css = walk(OUT)
   .filter((f) => f.endsWith('.css'))
-  .map((f) => fs.readFileSync(path.join(cssDir, f), 'utf8'))
+  .map((f) => fs.readFileSync(f, 'utf8'))
   .join('\n');
 if (!/:focus-visible/.test(css))
   bad('(css)', '2.4.7', 'focus-visible', 'no :focus-visible rule in the built CSS');

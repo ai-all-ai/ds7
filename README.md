@@ -11,13 +11,13 @@ npm install -D @ai.all/ds7
 npx ds7 init
 ```
 
-DS7 is a set of rules, templates and reference documents for fast, multilingual Nuxt 4 / Vue 3 sites. AI agents start from the root `ALL.md`, which routes them to the DS7 rules in `ds7/ALL.md` and to the rules of your project.
+DS7 is a frontend standard with rules, templates and checks. Its current installer scaffolds Nuxt 4 / Vue 3 projects; the CSS and architecture guidance can also be used for static HTML, vanilla JS, Astro and other stacks. Choose the CSS, rendering and build profiles in [Technology profiles](01-architecture/TECHNOLOGY-PROFILES.md). AI agents start from the root `ALL.md`, which routes them to `ds7/ALL.md` and the project's own rules.
 
 ## Requirements
 
 - Node.js 18 or newer.
 - A project folder where you run the command. DS7 writes `ds7/` and the agent entrypoints there.
-- A web project that follows the stack in `ds7/SPEC.md` (Nuxt 4, Vue 3, plain CSS with custom properties and native nesting; Tailwind, UnoCSS, SCSS and other CSS tools are optional). The rules are written for that stack.
+- For the current `npx ds7` scaffold and its Nuxt-specific gates, a Nuxt 4 / Vue 3 project following [SPEC.md](SPEC.md). Other stacks may adopt the standards and applicable checks without the Nuxt scaffold. Tailwind, UnoCSS, SCSS and other CSS tools are optional choices.
 
 ## Related
 
@@ -30,12 +30,15 @@ DS7 is a set of rules, templates and reference documents for fast, multilingual 
 | Package | Role |
 |---|---|
 | **DS7** (`@ai.all/ds7`) | The canonical standard: rules, recommendations, agent instructions, checks, production optimisation. |
-| **DS** (CSS layer) | The CSS implementation: tokens, themes, base styles, helpers, utilities. Ships today as the foundation layer of `@ai.all/ui` and the project's `theme.css`. |
+| **DS Native Contextual** | Recommended CSS method; usable in project files now. It is not a package. |
+| **DS Core** | Future framework-independent CSS package. No current DS7 dependency or subpath exports. |
 | **AI-ALL** (`@ai.all/aiall`) | The same behaviour for every AI agent; delivers the current DS7 instructions as a pack. |
-| **UI** (`@ai.all/ui`) | Reusable components and extra development tools. |
+| **UI** (`@ai.all/ui`) | Existing Vue components and CSS foundation, plus development tools. |
 | **DevTools, Brandbook, Asset Gallery** | Optional development helpers, left out of the public production build. UI components that pages use stay in it. |
 
 Deferred work (class-name mangler, own CSS compiler, critical CSS engine and others): [ROADMAP.md](ROADMAP.md).
+
+The [static HTML example](examples/static-html/README.md) demonstrates the same native CSS contract and independent calculator logic without Vue, Nuxt or DS Core.
 
 ## Quick start
 
@@ -46,7 +49,7 @@ npx ds7 doctor     # where the project stands and what to do next
 npx ds7 check      # the five quality gates
 ```
 
-Installing DS7 also installs `@ai.all/ui` and `@ai.all/aiall`. Init wires the UI kit into standard Nuxt 4 projects so the Brandbook is available at `/ui`. Build the Nuxt app with development dependencies installed.
+Installing DS7 currently also installs `@ai.all/ui` and `@ai.all/aiall`. This is package installation, not proof that either package is in browser output. Init wires UI into standard Nuxt 4 projects so the development Brandbook is available at `/ui`. Other rendering profiles use their own setup and relevant DS7 checks.
 
 Every site gets its own local address, `http://<name>.localhost:<port>`. The
 name comes from the package (`velo.es` gives `velo.localhost`), so no hosts
@@ -180,11 +183,11 @@ DS7 1.x wrote `ALL.md` and `ALL.project.md` to the project root. From this versi
 ## Build order
 
 1. **Foundations:** tokens in `theme.css`.
-2. **Brandbook:** every token and base atom on `/ui`.
-3. **Atoms and molecules,** built from the brandbook.
-4. **Sections and pages,** built from components.
+2. **Component contracts:** semantic structure, tokens, states and accessibility. Use `/ui` as a preview in the Nuxt/UI profile; other profiles can use their own fixtures.
+3. **Reusable components,** composed from the foundations.
+4. **Sections and pages,** composed from components.
 
-A value that is not a token does not appear in a component. A pattern that is not in the brandbook is not finished.
+Keep repeated design values in tokens and review reusable patterns in the preview available to the project.
 
 ## What you get
 

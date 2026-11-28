@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DS7 static profile example</title>
+    <meta name="description" content="A static HTML component example with native CSS and a progressively enhanced calculator.">
+    <link rel="stylesheet" href="./site.css">
+    <script type="module" src="./boot.mjs"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <nav aria-label="Main navigation"><a href="#main">Example</a></nav>
+    </header>
+    <main id="main">
+      <section class="intro" aria-labelledby="intro-title">
+        <header>
+          <h1 id="intro-title">Static HTML, shared CSS contracts</h1>
+          <p>The content remains available without JavaScript.</p>
+        </header>
+        <div class="model-list -compact">
+          <article class="model-card" data-theme="light">
+            <h2 class="title">A reusable card</h2>
+            <p>Its spacing comes from the parent context.</p>
+          </article>
+          <article class="model-card" data-theme="dark">
+            <h2 class="title">A nested theme</h2>
+            <p>Tokens change without selectors reaching into the card.</p>
+          </article>
+        </div>
+      </section>
+      <section class="tools" aria-labelledby="tools-title">
+        <h2 id="tools-title">Native and enhanced controls</h2>
+        <details class="faq-item">
+          <summary>Does the FAQ need JavaScript?</summary>
+          <p>No. The browser provides its disclosure behavior.</p>
+        </details>
+        <form class="calculator" data-calculator>
+          <label>Power (kW) <input name="power" type="number" min="0" step="any" value="5" required></label>
+          <label>Hours <input name="hours" type="number" min="0" step="any" value="6" required></label>
+          <button type="submit">Calculate energy</button>
+          <output name="result" aria-live="polite">Enable JavaScript to calculate here.</output>
+        </form>
+      </section>
+    </main>
+    <footer class="site-footer"><p>DS7 static profile fixture</p></footer>
+  </body>
+</html>

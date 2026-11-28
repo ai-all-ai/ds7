@@ -158,6 +158,7 @@ export function loadConfig(root = process.cwd()) {
     // css: false turns `ds7 css` off; dead and orphans fail, repeats and important are advice ("off" hides them)
     css: {
       off: user.css === false,
+      profile: user.css?.profile ?? 'existing',
       dir: user.css?.dir ?? 'app/assets/css',
       entry: user.css?.entry ?? 'main.css',
       sources: user.css?.sources ?? [

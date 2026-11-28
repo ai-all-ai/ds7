@@ -2,5 +2,6 @@
   "layout": { "rules": [], "imports": [] },
   "seo": { "internal": ["/ui", "/ds"], "trailingSlash": false, "llms": false },
   "a11y": { "exceptions": [] },
-  "perf": { "budgets": {} }
+  "perf": { "budgets": {} },
+  "css": { "profile": "ds-native" }
 }

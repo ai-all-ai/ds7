@@ -4,6 +4,18 @@ All notable changes to DS7 are recorded here. Format: [Keep a Changelog](https:/
 
 ## [Unreleased]
 
+## [2.10.0] — 2026-11-28
+
+### Added
+- Framework-independent technology profiles and an AIALL pack directive for agent routing, with separate CSS, rendering and build choices and explicit implementation statuses.
+- `ds7 css` validates native nesting concatenation in the `ds-native` profile and media-query variables in every profile; off-scale viewport thresholds are advice. New init configurations select `ds-native`; existing projects retain their current CSS profile.
+- A static HTML fixture with native nesting, responsive layout, theme context, a native FAQ and a calculator whose business logic has no Vue or DOM dependency.
+- The accessibility audit reads CSS emitted anywhere in a build, including a plain static site, rather than only Nuxt's `_nuxt` directory.
+
+### Changed
+- Clarified that the current Nuxt/Vue setup is a reference implementation, DS Native Contextual is a method rather than a package, UI already contains Vue components and development tools, and DS Core is future architecture.
+- Responsive guidance uses mobile-first minimum queries and half-open exclusive ranges; content-driven container thresholds and existing profiles remain valid.
+
 ## [2.9.1] — 2026-11-28
 
 A documentation and tokens release: how the browser reads native CSS nesting, and the five base breakpoints in media queries.
