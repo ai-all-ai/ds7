@@ -27,7 +27,7 @@ Generated sizes: **400, 800 and 1200 px wide**, WebP. Quality and the other sett
 <img
   src="/images/p/hero-1200.webp"
   srcset="/images/p/hero-400.webp 400w, /images/p/hero-800.webp 800w, /images/p/hero-1200.webp 1200w"
-  sizes="(max-width: 800px) 100vw, 60vw"
+  sizes="(max-width: 768px) 100vw, 60vw"
   width="1200" height="900"
   alt="Solar installation on a rooftop"
   fetchpriority="high" loading="eager" decoding="async"

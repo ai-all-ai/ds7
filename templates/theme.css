@@ -63,9 +63,10 @@
 
   /* 7. Breakpoints (for media queries; components use container queries) */
   --bp-sm: 480px;
-  --bp-md: 800px;
-  --bp-lg: 900px;
-  --bp-xl: 1200px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+  --bp-2xl: 1440px;
 }
 
 /* 8. Roles. Declared on every theme root, so a nested theme recomputes them. */

@@ -137,6 +137,28 @@ Native CSS Nesting is the recommended syntax: parts, modifiers, states and conta
 - **Flat is fine.** `.model-card .title {}` is the same selector as the nested form. Use it where it is simpler, for example a single rule or a project without nesting.
 - **`&` is the root.** `&.-hor` is a modifier on the root; `& .title` and `.title` are both descendants; `.page-home &` puts a context before the root.
 
+### How the browser reads nesting
+
+Native nesting is parsed by the browser, not compiled like Sass. These rules follow the specification ([CSS Nesting Module Level 1](https://drafts.csswg.org/css-nesting-1/)) and its guide ([MDN: Using CSS nesting](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Nesting/Using)):
+
+- **`&` joins, a missing `&` adds a space.** `&.-hor` is `.model-card.-hor`; `.-hor` without `&` is `.model-card .-hor`, a descendant. Modifiers and states always start with `&` (`&.-hor`, `&:hover`, `&[aria-current]`).
+- **No string joining.** `&__title` or `&-title` do not build a class name as in Sass: the browser reads them as an invalid selector and drops that rule. Name the part and nest it (`.title`). A tag goes first in a compound: `button&`, never `&button`.
+- **`&` never stands for a pseudo-element.** Under `.card::before` a nested `&:hover` matches nothing. Nest the pseudo-element under the root instead: `.card { &::before {} &:hover::before {} }`.
+- **At-rules nest too.** `@media`, `@container`, `@supports` and `@layer` go inside the rule they change; a declaration written directly inside them applies to the root. Put a media query inside its component rather than in a separate block at the end of the file.
+
+```css
+.model-list {
+  display: grid;
+  gap: var(--space-3);
+
+  @media (width <= 1024px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+```
+- **Declarations first, nested rules after.** Declarations written after a nested rule keep their place in current browsers (the specification wraps them in a nested declarations rule), but older engines skipped or moved them, and the specification itself recommends properties first.
+- **An invalid nested selector drops only itself.** The parent and the other nested rules still apply, so a typo fails silently: check the rule in the browser.
+
 ### Specificity
 
 - Every nested level adds to specificity: `.model-card .body .title` is (0,3,0). Shallow selectors are easier to override from a modifier or a parent.
@@ -383,7 +405,7 @@ Sidebar, Switcher, Frame, Reel and Imposter follow the same source when a projec
   }
 }
 ```
-- Pages use the breakpoints of `theme.css` in `@media`. Check 390, 820 and 1440 px.
+- Pages use the five base breakpoints of `TOKENS-SPEC.md` section 9 (480, 768, 1024, 1280 and 1440 px) and no others. A custom property cannot be read inside `@media`, so the value is written in the query, in range syntax with one pair of operators: `@media (width <= 1024px)` and `@media (width > 1024px)`. Scripts take the same values from one module of the project instead of writing their own `matchMedia` widths, and a check (for example the project's CSS audit) fails on any other width. Check 390, 820 and 1440 px.
 - Prefer intrinsic layout (`auto-fit`, `minmax()`, `clamp()`, `flex-wrap`) over a breakpoint per component.
 - Motion reads duration tokens, which `prefers-reduced-motion: reduce` sets to `0s` in the theme (`TOKENS-SPEC.md`), so no component needs its own media query.
 

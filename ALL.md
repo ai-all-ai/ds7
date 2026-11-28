@@ -8,7 +8,7 @@
 > Project-specific rules live in the root `ALL.md`, below the AI-ALL packs block (`<!-- aiall:begin packs -->` to `<!-- aiall:end packs -->`). AI-ALL keeps that text on sync. Longer project documents for agents live in `ds7/local/`, which `ds7 update` never writes; the root `ALL.md` links to them. Where project rules and this file disagree, the project rules win for that project and the disagreement is recorded in `docs/DECISIONS.md`.
 > This file is the `ds7` pack of AI-ALL. The root `ALL.md` lists it in the packs block. Every entrypoint (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/*`, `.windsurf/rules/*`, `.github/copilot-instructions.md`) points to the root `ALL.md`. Sync them with `npx @ai.all/aiall sync`.
 
-**Version:** 2.9.0 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, plain CSS with custom properties and native nesting (Tailwind, UnoCSS, SCSS and other tools optional), `@nuxtjs/i18n`, static generation.
+**Version:** 2.9.1 · **Stack:** Nuxt 4, Vue 3 `<script setup lang="ts">`, plain CSS with custom properties and native nesting (Tailwind, UnoCSS, SCSS and other tools optional), `@nuxtjs/i18n`, static generation.
 
 ---
 
@@ -107,8 +107,8 @@ Full rules, with before and after examples: `02-design-system/CSS-CONVENTIONS.md
 ## 4. Responsive layout
 
 - **Components** size themselves with `container-type: inline-size` and `@container`, so they work in any slot.
-- **Pages** use the breakpoints defined in the project's `theme.css` (`--bp-*`). Do not invent new ones.
-- **Grids** that cannot fit on a phone switch to two columns below 900 px, or to one column below 480 px. Check at 390, 820 and 1440 px.
+- **Pages** use the five base breakpoints of `TOKENS-SPEC.md` section 9 (480, 768, 1024, 1280, 1440 px), written as `@media (width <= N)` or `(width > N)`, the same values in scripts. Do not invent new ones.
+- **Grids** that cannot fit on a phone switch to two columns below 1024 px, or to one column below 480 px. Check at 390, 820 and 1440 px.
 - **No horizontal scroll** on any page at 390 px. Side gutter is 16 px on phones.
 
 ---

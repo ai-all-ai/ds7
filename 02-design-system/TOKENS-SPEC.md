@@ -178,16 +178,27 @@ A component reads its own variables with a fallback to a foundation token: `padd
 
 ## 9. Breakpoints
 
+DS7 has five base breakpoints. Every project uses these and no others in `@media` and in scripts.
+
 ```css
 :root {
-  --bp-sm: 480px;   /* one column below this */
-  --bp-md: 800px;   /* tablet-portrait boundary */
-  --bp-lg: 900px;   /* two-column grids collapse here */
-  --bp-xl: 1200px;  /* desktop layout */
+  --bp-sm: 480px;   /* large phone */
+  --bp-md: 768px;   /* tablet portrait */
+  --bp-lg: 1024px;  /* tablet landscape, small laptop: multi-column grids collapse below this */
+  --bp-xl: 1280px;  /* desktop layout */
+  --bp-2xl: 1440px; /* wide screens */
 }
 ```
 
-Media queries use these values. Components prefer container queries.
+| Name | Width | `@media` |
+| --- | --- | --- |
+| sm | 480 px | `(width <= 480px)` / `(width > 480px)` |
+| md | 768 px | `(width <= 768px)` / `(width > 768px)` |
+| lg | 1024 px | `(width <= 1024px)` / `(width > 1024px)` |
+| xl | 1280 px | `(width <= 1280px)` / `(width > 1280px)` |
+| 2xl | 1440 px | `(width <= 1440px)` / `(width > 1440px)` |
+
+The values are written in the query, because `var()` does not work inside `@media`; the custom properties document them. Use range syntax with one pair of operators, `<=` and `>`, so a width belongs to exactly one side. Scripts read the same numbers from one project module (for example `app/utils/breakpoints.ts`) instead of writing their own `matchMedia` widths, and an `<img sizes>` writes `(max-width: 1024px)`. A project check fails on any other width. Components prefer container queries.
 
 
 ---

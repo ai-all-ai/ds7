@@ -4,6 +4,14 @@ All notable changes to DS7 are recorded here. Format: [Keep a Changelog](https:/
 
 ## [Unreleased]
 
+## [2.9.1] — 2026-11-28
+
+A documentation and tokens release: how the browser reads native CSS nesting, and the five base breakpoints in media queries.
+
+### Changed
+- `02-design-system/CSS-CONVENTIONS.md` section 3 gains "How the browser reads nesting", from CSS Nesting Module Level 1 and the MDN guide: `&` joins, a missing `&` adds a descendant, no string joining (`&__title` is invalid), `&` never stands for a pseudo-element, at-rules nest inside the rule, declarations before nested rules, and an invalid nested selector drops only itself.
+- Base breakpoints are now 480, 768, 1024, 1280 and 1440 px (`--bp-sm` to `--bp-2xl`): 480 is kept, 768 replaces 800, 1024 replaces 900, 1280 replaces 1200, and 1440 is new. `TOKENS-SPEC.md` section 9 lists them with their `@media` form, `templates/theme.css` declares them, and `CSS-CONVENTIONS.md`, `ALL.md` and the `sizes` example in `ASSETS-PIPELINE.md` use them. Breakpoints are written in media queries in range syntax, `(width <= N)` and `(width > N)`, because `var()` does not work inside `@media`; scripts read the same values. A project moves its queries to the nearest new value (800 to 768, 900 to 1024, 1200 to 1280; 480 stays).
+
 ## [2.9.0] — 2026-11-27
 
 A CSS standards release: simpler, more reusable rules with fewer artificial limits. Existing projects keep working; nothing forces a migration.
